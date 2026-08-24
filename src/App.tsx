@@ -63,7 +63,15 @@ export default function App() {
     try {
       const updated = [item, ...history.filter((h) => h.id !== item.id)].slice(0, 10);
       setHistory(updated);
-      localStorage.setItem('docscan_history', JSON.stringify(updated));
+      
+      const storageSafeHistory = updated.map(h => ({
+        ...h,
+        originalImage: null,
+        enhancedImage: null,
+        thumbnail: null
+      }));
+      
+      localStorage.setItem('docscan_history', JSON.stringify(storageSafeHistory));
     } catch (e) {
       console.warn('Failed to save to localStorage', e);
     }

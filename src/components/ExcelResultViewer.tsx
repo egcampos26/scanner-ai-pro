@@ -41,8 +41,8 @@ export const ExcelResultViewer: React.FC<ExcelResultViewerProps> = ({
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
 
   const currentTable: DocumentTable =
-    tableData.tabelas[activeTableIndex] || tableData.tabelas[0];
-  const columns = currentTable?.colunas || Object.keys(currentTable?.linhas[0] || {});
+    tableData.tabelas[activeTableIndex] || tableData.tabelas[0] || { titulo: 'Nenhuma Tabela', colunas: [], linhas: [] };
+  const columns = currentTable.colunas || Object.keys(currentTable.linhas[0] || {});
 
   // Calculate totals and incomprehensibles
   let incomprehensibleCount = 0;
