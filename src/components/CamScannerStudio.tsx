@@ -49,6 +49,30 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
   const [compareSliderPos, setCompareSliderPos] = useState<number>(50);
 
   const isPdf = originalImageSrc.startsWith('data:application/pdf');
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isPdf && originalImageSrc) {
+      try {
+        const base64Data = originalImageSrc.split(',')[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        setPdfBlobUrl(url);
+
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      } catch (e) {
+        console.error("Failed to create PDF blob URL", e);
+      }
+    }
+  }, [isPdf, originalImageSrc]);
 
   // References
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -250,15 +274,22 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
           >
             {isPdf ? (
               <div className="w-full h-[560px] rounded-lg overflow-hidden border border-white/10 flex flex-col items-center justify-center bg-[#1A1A1A]">
-                <object data={originalImageSrc} type="application/pdf" className="w-full h-full">
-                  <div className="flex flex-col items-center justify-center text-center p-8 space-y-3">
-                    <FileText className="w-10 h-10 text-white/30" />
-                    <p className="text-sm text-white/60">
-                      Seu navegador não suporta a pré-visualização nativa de PDFs.<br />
-                      Mas o arquivo foi carregado com sucesso e está pronto para extração!
-                    </p>
+                {pdfBlobUrl ? (
+                  <object data={pdfBlobUrl} type="application/pdf" className="w-full h-full">
+                    <div className="flex flex-col items-center justify-center text-center p-8 space-y-3">
+                      <FileText className="w-10 h-10 text-white/30" />
+                      <p className="text-sm text-white/60">
+                        Seu navegador não suporta a pré-visualização nativa de PDFs.<br />
+                        Mas o arquivo foi carregado com sucesso e está pronto para extração!
+                      </p>
+                    </div>
+                  </object>
+                ) : (
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="w-6 h-6 border-2 border-white/20 border-t-[#00FF88] rounded-full animate-spin" />
+                    <span className="text-xs text-white/50 font-mono">Processando visualização...</span>
                   </div>
-                </object>
+                )}
               </div>
             ) : showSplitCompare ? (
               <div className="relative overflow-hidden rounded-lg border border-white/15 max-h-[560px]">
