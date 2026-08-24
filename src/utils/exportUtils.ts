@@ -298,6 +298,42 @@ export function exportToExcelXlsx(
     return;
   }
 
+  // Se houver conteúdo HTML (Modo Layout Visual), exportamos como .xls estruturado
+  const isVisualMode = tableData.tabelas.some(t => t.htmlContent);
+
+  if (isVisualMode) {
+    let allHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-family: Calibri, Arial, sans-serif; }
+          th, td { border: 1px solid #000000; padding: 6px; }
+          th { font-weight: bold; }
+          .bg-gray-200 { background-color: #d1d5db; }
+          h2 { font-family: Calibri, Arial, sans-serif; }
+        </style>
+      </head>
+      <body>
+    `;
+    
+    tableData.tabelas.forEach((tab, index) => {
+      if (tab.htmlContent) {
+        if (tab.titulo) allHtml += `<h2>${tab.titulo}</h2>\n`;
+        allHtml += `${tab.htmlContent}\n<br/><br/>`;
+      }
+    });
+    
+    allHtml += `</body></html>`;
+    
+    // Exportamos como .xls clássico que o Excel interpreta com toda a formatação nativa!
+    const blob = new Blob([allHtml], { type: 'application/vnd.ms-excel' });
+    const cleanName = sanitizeFilename(title) || 'planilha_visual';
+    downloadBlob(blob, `${cleanName}.xls`);
+    return;
+  }
+
+  // Modo Dados Planos: exporta como .xlsx limpo para banco de dados
   const workbook = XLSX.utils.book_new();
 
   tableData.tabelas.forEach((tab, index) => {
@@ -306,42 +342,28 @@ export function exportToExcelXlsx(
 
     let worksheet: XLSX.WorkSheet;
 
-    if (tab.htmlContent) {
-      // Create a temporary DOM element to hold the HTML table
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = tab.htmlContent;
-      const tableElement = tempDiv.querySelector('table');
-      
-      if (tableElement) {
-        worksheet = XLSX.utils.table_to_sheet(tableElement, { raw: false });
-      } else {
-        // Fallback if no table tag is found
-        worksheet = XLSX.utils.aoa_to_sheet([['Erro', 'Tabela HTML não encontrada no conteúdo']]);
-      }
-    } else {
-      const headers = tab.colunas || Object.keys(tab.linhas[0] || {});
-      const rows = tab.linhas.map((row) => {
-        const rowArr: (string | number)[] = [];
-        headers.forEach((h) => {
-          rowArr.push(row[h] !== undefined ? row[h] : '');
-        });
-        return rowArr;
+    const headers = tab.colunas || Object.keys(tab.linhas[0] || {});
+    const rows = tab.linhas.map((row) => {
+      const rowArr: (string | number)[] = [];
+      headers.forEach((h) => {
+        rowArr.push(row[h] !== undefined ? row[h] : '');
       });
+      return rowArr;
+    });
 
-      const worksheetData = [headers, ...rows];
-      worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const worksheetData = [headers, ...rows];
+    worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-      // Auto-calculate column widths for standard mode
-      const colWidths = headers.map((header, colIdx) => {
-        let maxLen = header.length;
-        rows.forEach((r) => {
-          const val = String(r[colIdx] || '');
-          if (val.length > maxLen) maxLen = val.length;
-        });
-        return { wch: Math.min(60, Math.max(12, maxLen + 3)) };
+    // Auto-calculate column widths for standard mode
+    const colWidths = headers.map((header, colIdx) => {
+      let maxLen = header.length;
+      rows.forEach((r) => {
+        const val = String(r[colIdx] || '');
+        if (val.length > maxLen) maxLen = val.length;
       });
-      worksheet['!cols'] = colWidths;
-    }
+      return { wch: Math.min(60, Math.max(12, maxLen + 3)) };
+    });
+    worksheet['!cols'] = colWidths;
 
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   });
