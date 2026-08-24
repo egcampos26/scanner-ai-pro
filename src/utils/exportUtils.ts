@@ -304,28 +304,44 @@ export function exportToExcelXlsx(
     let sheetName = (tab.titulo || `Tabela ${index + 1}`).replace(/[\\/*?:[\]]/g, '').slice(0, 31);
     if (!sheetName.trim()) sheetName = `Planilha_${index + 1}`;
 
-    const headers = tab.colunas || Object.keys(tab.linhas[0] || {});
-    const rows = tab.linhas.map((row) => {
-      const rowArr: (string | number)[] = [];
-      headers.forEach((h) => {
-        rowArr.push(row[h] !== undefined ? row[h] : '');
-      });
-      return rowArr;
-    });
+    let worksheet: XLSX.WorkSheet;
 
-    const worksheetData = [headers, ...rows];
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-
-    // Auto-calculate column widths
-    const colWidths = headers.map((header, colIdx) => {
-      let maxLen = header.length;
-      rows.forEach((r) => {
-        const val = String(r[colIdx] || '');
-        if (val.length > maxLen) maxLen = val.length;
+    if (tab.htmlContent) {
+      // Create a temporary DOM element to hold the HTML table
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = tab.htmlContent;
+      const tableElement = tempDiv.querySelector('table');
+      
+      if (tableElement) {
+        worksheet = XLSX.utils.table_to_sheet(tableElement, { raw: false });
+      } else {
+        // Fallback if no table tag is found
+        worksheet = XLSX.utils.aoa_to_sheet([['Erro', 'Tabela HTML não encontrada no conteúdo']]);
+      }
+    } else {
+      const headers = tab.colunas || Object.keys(tab.linhas[0] || {});
+      const rows = tab.linhas.map((row) => {
+        const rowArr: (string | number)[] = [];
+        headers.forEach((h) => {
+          rowArr.push(row[h] !== undefined ? row[h] : '');
+        });
+        return rowArr;
       });
-      return { wch: Math.min(60, Math.max(12, maxLen + 3)) };
-    });
-    worksheet['!cols'] = colWidths;
+
+      const worksheetData = [headers, ...rows];
+      worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+      // Auto-calculate column widths for standard mode
+      const colWidths = headers.map((header, colIdx) => {
+        let maxLen = header.length;
+        rows.forEach((r) => {
+          const val = String(r[colIdx] || '');
+          if (val.length > maxLen) maxLen = val.length;
+        });
+        return { wch: Math.min(60, Math.max(12, maxLen + 3)) };
+      });
+      worksheet['!cols'] = colWidths;
+    }
 
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   });

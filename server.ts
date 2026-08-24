@@ -91,7 +91,7 @@ Se houver pequenas tabelas secundárias, formate-as como tabelas Markdown.
 Caso haja trechos ilegíveis, marque como [INCOMPREENSÍVEL].
 ${customInstructions ? `Instruções adicionais do usuário: ${customInstructions}` : ''}`;
     } else if (targetFlow === 'excel') {
-      userPrompt = `Analise este documento no FLUXO B (Tabelas e Dados Financeiros para EXCEL).
+      userPrompt = `Analise este documento no FLUXO B (Tabelas e Dados Financeiros para EXCEL - PLANO).
 Extraia todas as tabelas e dados tabulares estritamente em formato JSON estruturado no formato:
 {
   "tabelas": [
@@ -105,6 +105,23 @@ Extraia todas as tabelas e dados tabulares estritamente em formato JSON estrutur
   ]
 }
 Preserve valores numéricos e moedas exatos. Se algo for ilegível, use [INCOMPREENSÍVEL].
+${customInstructions ? `Instruções adicionais do usuário: ${customInstructions}` : ''}`;
+    } else if (targetFlow === 'excel_visual') {
+      userPrompt = `Analise este documento no FLUXO C (Tabelas com Layout Visual/Original para EXCEL).
+Você deve gerar o código HTML de uma marcação <table> preservando a estrutura original do documento, incluindo células mescladas (rowspan, colspan), cabeçalhos agrupados (<th>), e pequenos estilos embutidos essenciais como <b>, <i>, <u> e cores de fundo/texto (bgcolor) onde relevante.
+
+A sua resposta para "tableData.tabelas" deve ser um único array contendo um objeto com o HTML gerado na propriedade "htmlContent":
+{
+  "tabelas": [
+    {
+      "titulo": "Nome da Tabela Original",
+      "colunas": [],
+      "linhas": [],
+      "htmlContent": "<table border='1' width='100%'>...</table>"
+    }
+  ]
+}
+Lembre-se de fechar corretamente as tags. Use [INCOMPREENSÍVEL] para trechos ilegíveis.
 ${customInstructions ? `Instruções adicionais do usuário: ${customInstructions}` : ''}`;
     } else {
       // Auto detection
@@ -160,7 +177,8 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
       {
         "titulo": "string",
         "colunas": ["string"],
-        "linhas": [ { "coluna": "valor" } ]
+        "linhas": [ { "coluna": "valor" } ],
+        "htmlContent": "String contendo a marcação HTML <table> se o FLUXO C (Visual) foi escolhido, senão nulo"
       }
     ]
   },

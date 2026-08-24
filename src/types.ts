@@ -1,4 +1,4 @@
-export type ScanFlow = 'auto' | 'word' | 'excel';
+export type ScanFlow = 'auto' | 'word' | 'excel' | 'excel_visual';
 
 export type FilterPreset = 'magic_color' | 'bw' | 'grayscale' | 'original' | 'sharp';
 
@@ -31,6 +31,7 @@ export interface DocumentTable {
   titulo: string;
   colunas: string[];
   linhas: TableRowData[];
+  htmlContent?: string;
 }
 
 export interface TableDataWrapper {

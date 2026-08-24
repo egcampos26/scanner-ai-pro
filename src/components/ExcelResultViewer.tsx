@@ -195,10 +195,17 @@ export const ExcelResultViewer: React.FC<ExcelResultViewerProps> = ({
           </span>
         )}
 
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#181818] text-white/60 border border-white/10">
-          <Calculator className="w-3.5 h-3.5 text-[#00FF88]" />
-          Edição interativa de células habilitada
-        </span>
+        {currentTable.htmlContent ? (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-950/40 text-blue-300 border border-blue-500/30">
+            <Check className="w-3.5 h-3.5 text-blue-400" />
+            Modo Visual Avançado: Layout original preservado
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#181818] text-white/60 border border-white/10">
+            <Calculator className="w-3.5 h-3.5 text-[#00FF88]" />
+            Edição interativa de células habilitada
+          </span>
+        )}
       </div>
 
       {/* Multi-table Tabs (if multiple tables detected) */}
@@ -228,18 +235,26 @@ export const ExcelResultViewer: React.FC<ExcelResultViewerProps> = ({
             <span className="w-2 h-2 rounded-full bg-[#00FF88]" />
             {currentTable.titulo || `Tabela ${activeTableIndex + 1}`}
           </span>
-          <button
-            type="button"
-            onClick={handleAddRow}
-            className="px-3 py-1 bg-[#1F1F1F] hover:bg-[#282828] border border-white/15 rounded-lg text-xs font-mono font-semibold text-white flex items-center gap-1.5 shadow-sm transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#00FF88]" />
-            <span>Adicionar Linha</span>
-          </button>
+          {!currentTable.htmlContent && (
+            <button
+              type="button"
+              onClick={handleAddRow}
+              className="px-3 py-1 bg-[#1F1F1F] hover:bg-[#282828] border border-white/15 rounded-lg text-xs font-mono font-semibold text-white flex items-center gap-1.5 shadow-sm transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#00FF88]" />
+              <span>Adicionar Linha</span>
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto max-h-[500px]">
-          <table className="w-full text-left border-collapse text-xs">
+          {currentTable.htmlContent ? (
+            <div 
+              className="p-4 bg-white text-black text-xs [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-gray-400 [&_th]:p-2 [&_th]:bg-gray-200 [&_td]:border [&_td]:border-gray-400 [&_td]:p-2"
+              dangerouslySetInnerHTML={{ __html: currentTable.htmlContent }}
+            />
+          ) : (
+            <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-[#181818] text-white/70 border-b border-white/10 sticky top-0 z-10 font-mono">
                 <th className="py-2.5 px-3 w-12 text-center text-white/30 text-[11px]">#</th>
@@ -303,6 +318,7 @@ export const ExcelResultViewer: React.FC<ExcelResultViewerProps> = ({
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
     </div>
