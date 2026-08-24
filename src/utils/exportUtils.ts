@@ -307,11 +307,9 @@ export function exportToExcelXlsx(
       <head>
         <meta charset="utf-8" />
         <style>
-          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-family: Calibri, Arial, sans-serif; }
-          th, td { border: 1px solid #000000; padding: 6px; }
-          th { font-weight: bold; }
-          .bg-gray-200 { background-color: #d1d5db; }
-          h2 { font-family: Calibri, Arial, sans-serif; }
+          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-family: Calibri, Arial, sans-serif; font-size: 12px; }
+          td, th { padding: 4px; }
+          h1, h2, h3, h4, h5, div, span, p { font-family: Calibri, Arial, sans-serif; }
         </style>
       </head>
       <body>

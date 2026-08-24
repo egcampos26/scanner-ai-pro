@@ -108,16 +108,21 @@ Preserve valores numéricos e moedas exatos. Se algo for ilegível, use [INCOMPR
 ${customInstructions ? `Instruções adicionais do usuário: ${customInstructions}` : ''}`;
     } else if (targetFlow === 'excel_visual') {
       userPrompt = `Analise este documento no FLUXO C (Tabelas com Layout Visual/Original para EXCEL).
-Você deve gerar o código HTML de uma marcação <table> preservando a estrutura original do documento, incluindo células mescladas (rowspan, colspan), cabeçalhos agrupados (<th>), e pequenos estilos embutidos essenciais como <b>, <i>, <u> e cores de fundo/texto (bgcolor) onde relevante.
+Você deve gerar o código HTML completo preservando *exatamente* o design visual e a estrutura original do documento inteiro.
+Regras estritas:
+1. Inclua todos os textos, títulos, cabeçalhos do topo da página (como nomes de prefeituras/empresas) antes de abrir a tabela, formatados com <div> ou <h1>/<h2> centralizados.
+2. Para tabelas, use marcação <table> com todas as células mescladas originais (rowspan, colspan).
+3. Use ESTILOS INLINE rigorosos (style="...") para cores exatas. Exemplo: use style="background-color: #e2e2e2; text-align: center; font-weight: bold; font-size: 11px;" para fundos cinzas, em vez de propriedades HTML antigas. Mapeie se a cor original é cinza claro ou escuro.
+4. Preservar as proporções de largura usando style="width: XX%;" nas células <td> e <th>.
 
 A sua resposta para "tableData.tabelas" deve ser um único array contendo um objeto com o HTML gerado na propriedade "htmlContent":
 {
   "tabelas": [
     {
-      "titulo": "Nome da Tabela Original",
+      "titulo": "Documento Completo",
       "colunas": [],
       "linhas": [],
-      "htmlContent": "<table border='1' width='100%'>...</table>"
+      "htmlContent": "<div style='font-family: Arial, sans-serif; font-size: 12px;'>...[código html idêntico ao documento]...</div>"
     }
   ]
 }
