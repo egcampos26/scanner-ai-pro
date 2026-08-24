@@ -307,8 +307,8 @@ export function exportToExcelXlsx(
       <head>
         <meta charset="utf-8" />
         <style>
-          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-family: Calibri, Arial, sans-serif; font-size: 12px; }
-          td, th { padding: 4px; }
+          table { border-collapse: collapse; width: 800px; margin: 0 auto 20px auto; font-family: Calibri, Arial, sans-serif; font-size: 12px; }
+          td, th { padding: 4px; border: 1px solid #000; }
           h1, h2, h3, h4, h5, div, span, p { font-family: Calibri, Arial, sans-serif; }
         </style>
       </head>
@@ -317,7 +317,6 @@ export function exportToExcelXlsx(
     
     tableData.tabelas.forEach((tab, index) => {
       if (tab.htmlContent) {
-        if (tab.titulo) allHtml += `<h2>${tab.titulo}</h2>\n`;
         allHtml += `${tab.htmlContent}\n<br/><br/>`;
       }
     });

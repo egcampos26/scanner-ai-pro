@@ -108,12 +108,13 @@ Preserve valores numéricos e moedas exatos. Se algo for ilegível, use [INCOMPR
 ${customInstructions ? `Instruções adicionais do usuário: ${customInstructions}` : ''}`;
     } else if (targetFlow === 'excel_visual') {
       userPrompt = `Analise este documento no FLUXO C (Tabelas com Layout Visual/Original para EXCEL).
-Você deve gerar o código HTML completo preservando *exatamente* o design visual e a estrutura original do documento inteiro.
+Você deve gerar o código HTML completo preservando *exatamente* o design visual e a estrutura original do documento inteiro, otimizado para o Microsoft Excel.
 Regras estritas:
-1. Inclua todos os textos, títulos, cabeçalhos do topo da página (como nomes de prefeituras/empresas) antes de abrir a tabela, formatados com <div> ou <h1>/<h2> centralizados.
-2. Para tabelas, use marcação <table> com todas as células mescladas originais (rowspan, colspan).
-3. Use ESTILOS INLINE rigorosos (style="...") para cores exatas. Exemplo: use style="background-color: #e2e2e2; text-align: center; font-weight: bold; font-size: 11px;" para fundos cinzas, em vez de propriedades HTML antigas. Mapeie se a cor original é cinza claro ou escuro.
-4. Preservar as proporções de largura usando style="width: XX%;" nas células <td> e <th>.
+1. Inclua todos os textos, títulos, cabeçalhos do topo da página (ex: "PREFEITURA DO MUNICIPIO...") antes de abrir a tabela, formatados com <div> ou <h3> com style="text-align: center; font-family: Arial;".
+2. Para tabelas, use marcação <table width="800" style="border-collapse: collapse; font-family: Arial;"> com todas as células mescladas originais (rowspan, colspan).
+3. Use ESTILOS INLINE rigorosos para cores exatas. O Excel não interpreta bem classes. Use sempre style="background-color: #e0e0e0;" para fundos cinzas claros, ou #c0c0c0 para escuros. Não use "gray".
+4. Defina LARGURAS FIXAS em pixels nas células <td> (ex: width="150" ou style="width: 150px;") para forçar o Excel a respeitar as proporções das colunas.
+5. Use style="border: 1px solid #000;" em todas as células (td/th) que possuam bordas no documento original.
 
 A sua resposta para "tableData.tabelas" deve ser um único array contendo um objeto com o HTML gerado na propriedade "htmlContent":
 {
