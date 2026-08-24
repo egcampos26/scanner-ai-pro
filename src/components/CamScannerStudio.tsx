@@ -48,6 +48,8 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
   const [showSplitCompare, setShowSplitCompare] = useState<boolean>(false);
   const [compareSliderPos, setCompareSliderPos] = useState<number>(50);
 
+  const isPdf = originalImageSrc.startsWith('data:application/pdf');
+
   // References
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -56,6 +58,8 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
 
   // Load original image and initialize corners
   useEffect(() => {
+    if (isPdf) return; // Skip image logic for PDFs
+
     const img = new Image();
     img.onload = () => {
       imageObjRef.current = img;
@@ -133,6 +137,11 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
   };
 
   const handleConfirmAndScan = () => {
+    if (isPdf) {
+      onProceedToOCR(originalImageSrc, targetFlow);
+      return;
+    }
+    
     if (!canvasRef.current) return;
     const enhancedDataUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
     onProceedToOCR(enhancedDataUrl, targetFlow);
@@ -237,10 +246,21 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
             ref={containerRef}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            className="relative max-w-full max-h-[580px] flex items-center justify-center select-none shadow-2xl"
+            className="relative max-w-full w-full max-h-[580px] flex items-center justify-center select-none shadow-2xl"
           >
-            {/* Split Comparison View Mode */}
-            {showSplitCompare ? (
+            {isPdf ? (
+              <div className="w-full h-[560px] rounded-lg overflow-hidden border border-white/10 flex flex-col items-center justify-center bg-[#1A1A1A]">
+                <object data={originalImageSrc} type="application/pdf" className="w-full h-full">
+                  <div className="flex flex-col items-center justify-center text-center p-8 space-y-3">
+                    <FileText className="w-10 h-10 text-white/30" />
+                    <p className="text-sm text-white/60">
+                      Seu navegador não suporta a pré-visualização nativa de PDFs.<br />
+                      Mas o arquivo foi carregado com sucesso e está pronto para extração!
+                    </p>
+                  </div>
+                </object>
+              </div>
+            ) : showSplitCompare ? (
               <div className="relative overflow-hidden rounded-lg border border-white/15 max-h-[560px]">
                 {/* Processed (Enhanced) Image */}
                 <canvas ref={canvasRef} className="max-w-full max-h-[560px] object-contain block" />
@@ -341,10 +361,11 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
           </div>
 
           {/* Quick Floating Bar over Viewport */}
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 z-10">
-            <button
-              type="button"
-              onClick={() => {
+          {!isPdf && (
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 z-10">
+              <button
+                type="button"
+                onClick={() => {
                 setIsPerspectiveMode(!isPerspectiveMode);
                 setShowSplitCompare(false);
               }}
@@ -393,11 +414,14 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
               <span>Baixar Imagem</span>
             </button>
           </div>
+          )}
         </div>
 
         {/* Right: Controls & Filters Panel */}
         <div className="lg:col-span-4 space-y-5">
-          {/* Preset Filters Box */}
+          {!isPdf ? (
+            <>
+              {/* Preset Filters Box */}
           <div className="bg-[#111111] border border-white/10 rounded-2xl p-4 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-white flex items-center gap-1.5">
@@ -530,6 +554,17 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
               />
             </div>
           </div>
+            </>
+          ) : (
+            <div className="bg-[#111111] border border-[#00FF88]/30 rounded-2xl p-5 shadow-[0_0_15px_rgba(0,255,136,0.05)] space-y-3">
+               <h3 className="text-sm font-bold text-[#00FF88] flex items-center gap-2">
+                 <FileText className="w-5 h-5" /> Arquivo PDF Detectado
+               </h3>
+               <p className="text-xs text-white/60 leading-relaxed">
+                 O estúdio de ajustes de imagem é desativado para arquivos PDF. A IA avançada do DocScan lerá diretamente todas as páginas do seu documento original preservando a máxima fidelidade do texto.
+               </p>
+            </div>
+          )}
 
           {/* Primary Action Button: Proceed to Multimodal OCR */}
           <div className="space-y-2.5">
