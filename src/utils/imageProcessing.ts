@@ -51,11 +51,13 @@ export function applyDocumentFilter(
           data[i] = 255;
           data[i + 1] = 255;
           data[i + 2] = 255;
+          data[i + 3] = 255;
         } else {
           // Keep rich ink color
           data[i] = Math.min(255, Math.max(0, Math.round(contrastFactor * (r - 128) + 128)));
           data[i + 1] = Math.min(255, Math.max(0, Math.round(contrastFactor * (g - 128) + 128)));
           data[i + 2] = Math.min(255, Math.max(0, Math.round(contrastFactor * (b - 128) + 128)));
+          data[i + 3] = 255;
         }
       } else {
         // Neutral / text / paper background
@@ -67,12 +69,14 @@ export function applyDocumentFilter(
           data[i] = 255;
           data[i + 1] = 255;
           data[i + 2] = 255;
+          data[i + 3] = 255;
         } else if (luma < 90) {
           // Deep crisp black text
           const darkened = Math.max(0, Math.round(luma * 0.45));
           data[i] = darkened;
           data[i + 1] = darkened;
           data[i + 2] = darkened;
+          data[i + 3] = 255;
         } else {
           // Transition zone: apply high contrast
           const normalized = (luma - 90) / (175 - 90);
@@ -80,6 +84,7 @@ export function applyDocumentFilter(
           data[i] = val;
           data[i + 1] = val;
           data[i + 2] = val;
+          data[i + 3] = 255;
         }
       }
     }
@@ -92,6 +97,7 @@ export function applyDocumentFilter(
       data[i] = val;
       data[i + 1] = val;
       data[i + 2] = val;
+      data[i + 3] = 255;
     }
   } else if (filter === 'grayscale') {
     // Studio Grayscale with contrast boost
@@ -106,6 +112,7 @@ export function applyDocumentFilter(
       data[i] = luma;
       data[i + 1] = luma;
       data[i + 2] = luma;
+      data[i + 3] = 255;
     }
   } else if (filter === 'sharp') {
     // High-definition sharpen filter
@@ -125,6 +132,7 @@ export function applyDocumentFilter(
       data[i] = r;
       data[i + 1] = g;
       data[i + 2] = b;
+      data[i + 3] = 255;
     }
   } else {
     // Original with optional basic adjustments
@@ -133,6 +141,7 @@ export function applyDocumentFilter(
         data[i] = Math.min(255, Math.max(0, contrastFactor * (data[i] + brightness - 128) + 128));
         data[i + 1] = Math.min(255, Math.max(0, contrastFactor * (data[i + 1] + brightness - 128) + 128));
         data[i + 2] = Math.min(255, Math.max(0, contrastFactor * (data[i + 2] + brightness - 128) + 128));
+        data[i + 3] = 255;
       }
     }
   }

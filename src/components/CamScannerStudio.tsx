@@ -57,7 +57,6 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
   // Load original image and initialize corners
   useEffect(() => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => {
       imageObjRef.current = img;
       const initialCorners = getDefaultCorners(img.naturalWidth, img.naturalHeight, 0.04);
