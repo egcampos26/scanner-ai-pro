@@ -14,7 +14,7 @@ import {
   PenTool,
 } from 'lucide-react';
 import { ScanResultData } from '../types';
-import { exportToWordDocx } from '../utils/exportUtils';
+import { exportToWordDocx, exportToWordVisual } from '../utils/exportUtils';
 
 interface WordResultViewerProps {
   result: ScanResultData;
@@ -56,7 +56,10 @@ export const WordResultViewer: React.FC<WordResultViewerProps> = ({
     }
   };
 
+  const isVisualMode = !!result.wordHtml;
+
   const handleChangeText = (newVal: string) => {
+    if (isVisualMode) return; // Cannot edit raw HTML in simple text area safely
     setMarkdown(newVal);
     onUpdateContent(newVal);
   };
@@ -73,14 +76,18 @@ export const WordResultViewer: React.FC<WordResultViewerProps> = ({
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               {result.documentTitle || 'Documento de Texto'}
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                Word (.docx / Markdown)
+                Word (.doc{isVisualMode ? '' : 'x'})
               </span>
             </h3>
             <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-white/50 mt-0.5">
-              <span>{wordCount} palavras</span>
-              <span>•</span>
-              <span>~{readingTime} min de leitura</span>
-              <span>•</span>
+              {!isVisualMode && (
+                <>
+                  <span>{wordCount} palavras</span>
+                  <span>•</span>
+                  <span>~{readingTime} min de leitura</span>
+                  <span>•</span>
+                </>
+              )}
               <span>Precisão: <strong className="text-[#00FF88]">{result.confidenceScore}%</strong></span>
             </div>
           </div>
@@ -89,49 +96,51 @@ export const WordResultViewer: React.FC<WordResultViewerProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
           {/* View mode toggles */}
-          <div className="bg-[#181818] border border-white/10 p-1 rounded-xl flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setViewMode('rendered')}
-              className={`p-1.5 rounded-lg text-xs font-mono flex items-center gap-1.5 transition-all ${
-                viewMode === 'rendered'
-                  ? 'bg-[#262626] text-white shadow-sm border border-white/15 font-bold'
-                  : 'text-white/50 hover:text-white'
-              }`}
-              title="Visualização Formatada"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Visualizar</span>
-            </button>
+          {!isVisualMode && (
+            <div className="bg-[#181818] border border-white/10 p-1 rounded-xl flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('rendered')}
+                className={`p-1.5 rounded-lg text-xs font-mono flex items-center gap-1.5 transition-all ${
+                  viewMode === 'rendered'
+                    ? 'bg-[#262626] text-white shadow-sm border border-white/15 font-bold'
+                    : 'text-white/50 hover:text-white'
+                }`}
+                title="Visualização Formatada"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Visualizar</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setViewMode('edit')}
-              className={`p-1.5 rounded-lg text-xs font-mono flex items-center gap-1.5 transition-all ${
-                viewMode === 'edit'
-                  ? 'bg-[#262626] text-white shadow-sm border border-white/15 font-bold'
-                  : 'text-white/50 hover:text-white'
-              }`}
-              title="Editor Markdown"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Editar</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('edit')}
+                className={`p-1.5 rounded-lg text-xs font-mono flex items-center gap-1.5 transition-all ${
+                  viewMode === 'edit'
+                    ? 'bg-[#262626] text-white shadow-sm border border-white/15 font-bold'
+                    : 'text-white/50 hover:text-white'
+                }`}
+                title="Editor Markdown"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Editar</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setViewMode('split')}
-              className={`p-1.5 rounded-lg text-xs font-mono flex items-center gap-1.5 transition-all ${
-                viewMode === 'split'
-                  ? 'bg-[#262626] text-white shadow-sm border border-white/15 font-bold'
-                  : 'text-white/50 hover:text-white'
-              }`}
-              title="Visualização Dividida"
-            >
-              <Columns className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Dividido</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setViewMode('split')}
+                className={`p-1.5 rounded-lg text-xs font-mono flex items-center gap-1.5 transition-all ${
+                  viewMode === 'split'
+                    ? 'bg-[#262626] text-white shadow-sm border border-white/15 font-bold'
+                    : 'text-white/50 hover:text-white'
+                }`}
+                title="Visualização Dividida"
+              >
+                <Columns className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Dividido</span>
+              </button>
+            </div>
+          )}
 
           <button
             type="button"
@@ -149,7 +158,7 @@ export const WordResultViewer: React.FC<WordResultViewerProps> = ({
             className="px-4 py-2 text-xs font-mono uppercase tracking-wider font-bold text-black bg-[#00FF88] hover:bg-[#00FF88]/90 active:scale-[0.98] rounded-xl shadow-[0_0_15px_rgba(0,255,136,0.25)] flex items-center gap-2 transition-all"
           >
             <Download className="w-3.5 h-3.5 text-black" />
-            <span>{isExporting ? 'Gerando...' : 'Baixar Word (.docx)'}</span>
+            <span>{isExporting ? 'Gerando...' : `Baixar Word (.doc${isVisualMode ? '' : 'x'})`}</span>
           </button>
         </div>
       </div>
@@ -185,7 +194,14 @@ export const WordResultViewer: React.FC<WordResultViewerProps> = ({
 
       {/* Document Viewport */}
       <div className="bg-[#0E0E0E] border border-white/10 rounded-2xl overflow-hidden shadow-sm">
-        {viewMode === 'split' ? (
+        {isVisualMode ? (
+          <div className="p-8 sm:p-12 max-w-4xl mx-auto min-h-[550px] bg-white">
+            <div 
+              className="text-black"
+              dangerouslySetInnerHTML={{ __html: result.wordHtml || '' }} 
+            />
+          </div>
+        ) : viewMode === 'split' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10 min-h-[500px]">
             {/* Editor Pane */}
             <div className="p-4 flex flex-col bg-[#111111]">

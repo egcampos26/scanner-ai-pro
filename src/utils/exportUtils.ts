@@ -287,6 +287,32 @@ function parseInlineFormatting(text: string): TextRun[] {
 }
 
 /**
+ * Exports visual HTML to a .doc Microsoft Word file
+ */
+export function exportToWordVisual(
+  htmlContent: string,
+  title: string = 'Documento_Visual'
+) {
+  let allHtml = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        body { font-family: Calibri, Arial, sans-serif; }
+      </style>
+    </head>
+    <body>
+      ${htmlContent}
+    </body>
+    </html>
+  `;
+  
+  const blob = new Blob([allHtml], { type: 'application/msword' });
+  const cleanName = sanitizeFilename(title) || 'documento_visual';
+  downloadBlob(blob, `${cleanName}.doc`);
+}
+
+/**
  * Exports extracted tables to Microsoft Excel (.xlsx)
  */
 export function exportToExcelXlsx(

@@ -1,4 +1,4 @@
-export type ScanFlow = 'auto' | 'word' | 'excel' | 'excel_visual';
+export type ScanFlow = 'auto' | 'word' | 'word_visual' | 'excel' | 'excel_visual';
 
 export type FilterPreset = 'magic_color' | 'bw' | 'grayscale' | 'original' | 'sharp';
 
@@ -48,6 +48,7 @@ export interface ScanResultData {
   elementsDetected: DetectedElements;
   incomprehensibleCount: number;
   markdownContent?: string;
+  wordHtml?: string;
   tableData?: TableDataWrapper;
   summary: string;
   suggestedFileName: string;

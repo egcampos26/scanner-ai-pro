@@ -630,6 +630,39 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
             </div>
           )}
 
+          {/* Formato de Word Toggle */}
+          {targetFlow.startsWith('word') && (
+            <div className="bg-[#111111] border border-white/10 rounded-2xl p-4 shadow-sm space-y-3">
+              <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-white/80 mb-2">
+                Modo de Extração Word
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTargetFlow('word')}
+                  className={`flex-1 py-2 px-2 rounded-lg text-xs font-mono font-medium border transition-colors ${
+                    targetFlow === 'word'
+                      ? 'bg-blue-900/40 border-blue-500 text-blue-400'
+                      : 'bg-[#181818] border-white/10 text-white/50 hover:bg-[#222222]'
+                  }`}
+                >
+                  Texto Simples<br/><span className="text-[10px] opacity-70">(Contratos e redações)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetFlow('word_visual')}
+                  className={`flex-1 py-2 px-2 rounded-lg text-xs font-mono font-medium border transition-colors ${
+                    targetFlow === 'word_visual'
+                      ? 'bg-blue-900/40 border-blue-500 text-blue-400'
+                      : 'bg-[#181818] border-white/10 text-white/50 hover:bg-[#222222]'
+                  }`}
+                >
+                  Layout Visual<br/><span className="text-[10px] opacity-70">(Clone visual)</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Primary Action Button: Proceed to Multimodal OCR */}
           <div className="space-y-2.5">
             <button

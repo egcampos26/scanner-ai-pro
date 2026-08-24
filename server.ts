@@ -85,10 +85,22 @@ DIRETRIZES DE PRECISÃO:
 
     let userPrompt = '';
     if (targetFlow === 'word') {
-      userPrompt = `Analise este documento no FLUXO A (Documento de Texto para WORD).
+      userPrompt = `Analise este documento no FLUXO A (Documento de Texto para WORD - PLANO).
 Extraia todo o conteúdo textual em Markdown formatado (# títulos, **negrito**, listas, etc.).
 Se houver pequenas tabelas secundárias, formate-as como tabelas Markdown.
 Caso haja trechos ilegíveis, marque como [INCOMPREENSÍVEL].
+${customInstructions ? `Instruções adicionais do usuário: ${customInstructions}` : ''}`;
+    } else if (targetFlow === 'word_visual') {
+      userPrompt = `Analise este documento no FLUXO D (Documento com Layout Visual/Original para WORD).
+Você deve gerar o código HTML completo preservando *exatamente* o design visual, tipografia e a estrutura original do documento inteiro.
+Regras estritas:
+1. Inclua todos os textos, cabeçalhos, títulos e parágrafos estruturados de forma idêntica ao original.
+2. Para tabelas, use marcação <table> com todas as células mescladas originais (rowspan, colspan).
+3. Use ESTILOS INLINE rigorosos para cores exatas, bordas e alinhamentos. O Word lê CSS inline perfeitamente (ex: style="background-color: #e0e0e0; text-align: center; border: 1px solid black;").
+4. Mantenha as larguras em porcentagem ou pixels para garantir que a tabela não quebre no Word.
+
+A sua resposta para o campo "wordHtml" deve conter uma string com o HTML completo gerado, por exemplo: "<div style='font-family: Arial, sans-serif;'>...</div>".
+Lembre-se de fechar corretamente as tags. Use [INCOMPREENSÍVEL] para trechos ilegíveis.
 ${customInstructions ? `Instruções adicionais do usuário: ${customInstructions}` : ''}`;
     } else if (targetFlow === 'excel') {
       userPrompt = `Analise este documento no FLUXO B (Tabelas e Dados Financeiros para EXCEL - PLANO).
@@ -169,15 +181,16 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
   "confidenceScore": number (0 a 100),
   "perspectiveQuality": "good" | "skewed_corrected" | "distorted",
   "elementsDetected": {
-    "hasSignatures": boolean,
-    "hasStamps": boolean,
-    "hasLogos": boolean,
-    "hasBarcodes": boolean,
-    "signaturesCount": number,
-    "stampsCount": number
+    "hasSignatures": true,
+    "hasStamps": true,
+    "hasLogos": true,
+    "hasBarcodes": true,
+    "signaturesCount": 0,
+    "stampsCount": 0
   },
   "incomprehensibleCount": number,
-  "markdownContent": "Conteúdo formatado em Markdown se aplicável para Word",
+  "markdownContent": "Conteúdo formatado em Markdown se o fluxo A (Word Simples) foi escolhido, senão omitir.",
+  "wordHtml": "Código HTML completo se o fluxo D (Word Visual) foi escolhido, senão omitir.",
   "tableData": {
     "tabelas": [
       {
