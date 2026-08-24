@@ -119,7 +119,7 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
 
     // Structure the response format
     const extractionResponse = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.5-flash',
       contents: [
         {
           role: 'user',
@@ -239,7 +239,7 @@ Retorne JSON no formato:
 }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
