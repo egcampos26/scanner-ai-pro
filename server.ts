@@ -118,20 +118,26 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
     }
 
     // Structure the response format
-    const extractionResponse = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
+    let extractionResponse;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        extractionResponse = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: [
             {
-              inlineData: {
-                data: base64Data,
-                mimeType: cleanMimeType,
-              },
-            },
-            {
-              text: `${userPrompt}\n\nRetorne sua resposta final em um objeto JSON com as seguintes propriedades:
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    data: base64Data,
+                    mimeType: cleanMimeType,
+                  },
+                },
+                {
+                  text: `${userPrompt}\n\nRetorne sua resposta final em um objeto JSON com as seguintes propriedades:
 {
   "detectedType": "word" | "excel" | "mixed",
   "documentClassification": "Contrato" | "Nota Fiscal" | "Extrato Bancário" | "Recibo" | "Relatório" | "Petição" | "Outro",
@@ -161,16 +167,31 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
   "summary": "Resumo de 2 linhas sobre o documento digitalizado",
   "suggestedFileName": "nome_do_arquivo_sem_extensao"
 }`,
+                },
+              ],
             },
           ],
-        },
-      ],
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        temperature: 0.1, // High precision, zero hallucination
-      },
-    });
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+            temperature: 0.1, // High precision, zero hallucination
+          },
+        });
+        break; // Success
+      } catch (err: any) {
+        attempts++;
+        if (err.message && err.message.includes('503') && attempts < maxAttempts) {
+          console.warn(`Gemini 503 High Demand Error. Retrying attempt ${attempts} of ${maxAttempts}...`);
+          await new Promise((r) => setTimeout(r, 2000 * attempts));
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (!extractionResponse) {
+      throw new Error('Falha ao obter resposta do modelo Gemini após várias tentativas.');
+    }
 
     const responseText = extractionResponse.text || '{}';
     let parsedResult;
@@ -238,14 +259,30 @@ Retorne JSON no formato:
   "explanation": "Breve explicação da alteração feita"
 }`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-      },
-    });
+    let response;
+    let refineAttempts = 0;
+    while (refineAttempts < 3) {
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          },
+        });
+        break;
+      } catch (err: any) {
+        refineAttempts++;
+        if (err.message && err.message.includes('503') && refineAttempts < 3) {
+          await new Promise((r) => setTimeout(r, 1500 * refineAttempts));
+        } else {
+          throw err;
+        }
+      }
+    }
+    
+    if (!response) throw new Error('Refinamento falhou.');
 
     const parsed = JSON.parse(response.text || '{}');
     res.json({ success: true, data: parsed });
