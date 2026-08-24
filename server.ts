@@ -125,7 +125,7 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
     while (attempts < maxAttempts) {
       try {
         extractionResponse = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: [
             {
               role: 'user',
@@ -264,7 +264,7 @@ Retorne JSON no formato:
     while (refineAttempts < 3) {
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
