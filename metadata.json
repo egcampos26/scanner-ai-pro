@@ -1,0 +1,6 @@
+{
+  "name": "DocScan AI - Multimodal Document Converter & Scanner",
+  "description": "AI-powered multimodal document scanner and OCR converter with CamScanner desk visual enhancement, extracting Word (Markdown/.docx) and Excel (JSON/.xlsx) with zero hallucination.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
