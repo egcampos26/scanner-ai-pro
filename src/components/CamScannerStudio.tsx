@@ -103,8 +103,16 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
         const ctx = warped.getContext('2d');
         ctx?.drawImage(img, 0, 0);
       } else {
-        // Flat rectilinear desk perspective
-        warped = warpPerspectiveCanvas(img, currentCorners, 1000, 1414);
+        // Calculate dynamic width and height based on the physical distance between corners
+        const topWidth = Math.hypot(currentCorners.topRight.x - currentCorners.topLeft.x, currentCorners.topRight.y - currentCorners.topLeft.y);
+        const bottomWidth = Math.hypot(currentCorners.bottomRight.x - currentCorners.bottomLeft.x, currentCorners.bottomRight.y - currentCorners.bottomLeft.y);
+        const targetWidth = Math.max(topWidth, bottomWidth);
+
+        const leftHeight = Math.hypot(currentCorners.bottomLeft.x - currentCorners.topLeft.x, currentCorners.bottomLeft.y - currentCorners.topLeft.y);
+        const rightHeight = Math.hypot(currentCorners.bottomRight.x - currentCorners.topRight.x, currentCorners.bottomRight.y - currentCorners.topRight.y);
+        const targetHeight = Math.max(leftHeight, rightHeight);
+
+        warped = warpPerspectiveCanvas(img, currentCorners, targetWidth, targetHeight);
       }
 
       // 2. Rotation
