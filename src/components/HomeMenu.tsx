@@ -4,9 +4,10 @@ import { AppMode } from '../types';
 
 interface HomeMenuProps {
   onSelectMode: (mode: AppMode, file: File) => void;
+  onOpenCamera: () => void;
 }
 
-export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode }) => {
+export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode, onOpenCamera }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const selectedModeRef = useRef<AppMode>('scanner');
 
@@ -75,9 +76,21 @@ export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode }) => {
             </p>
           </div>
           
-          <div className="inline-flex items-center gap-2 px-4 py-2 mt-2 bg-[#00FF88]/10 text-[#00FF88] font-mono text-xs font-bold rounded-lg border border-[#00FF88]/20 uppercase tracking-wider group-hover:bg-[#00FF88] group-hover:text-black transition-colors">
-            <Upload className="w-3.5 h-3.5" />
-            Escolher Foto
+          <div className="flex items-center gap-2 mt-2 relative z-10">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#00FF88]/10 text-[#00FF88] font-mono text-xs font-bold rounded-lg border border-[#00FF88]/20 uppercase tracking-wider group-hover:bg-[#00FF88] group-hover:text-black transition-colors">
+              <Upload className="w-3.5 h-3.5" />
+              Galeria
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenCamera();
+              }}
+              className="inline-flex items-center justify-center p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/10 transition-colors"
+              title="Abrir Câmera"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
           </div>
         </button>
 

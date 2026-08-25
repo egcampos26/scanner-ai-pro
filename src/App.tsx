@@ -216,6 +216,11 @@ export default function App() {
     setErrorMessage(null);
   };
 
+  const handleOpenCamera = () => {
+    setAppMode('scanner');
+    setIsCameraOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#E0E0E0] flex flex-col font-sans selection:bg-[#00FF88] selection:text-black">
       {/* Top Navigation */}
@@ -243,7 +248,7 @@ export default function App() {
         {/* STEP 1: Upload & Document Selector */}
         {step === 'upload' && (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <HomeMenu onSelectMode={handleModeSelected} />
+            <HomeMenu onSelectMode={handleModeSelected} onOpenCamera={handleOpenCamera} />
           </div>
         )}
 

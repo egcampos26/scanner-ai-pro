@@ -173,9 +173,9 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
     onProceedToOCR(enhancedDataUrl, targetFlow);
   };
 
-  // Draggable corners for perspective adjustment
   const handlePointerDownCorner = (cornerKey: keyof CornerPoints, e: React.PointerEvent) => {
     e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
     setActiveCorner(cornerKey);
   };
 
@@ -201,7 +201,10 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
     });
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     setActiveCorner(null);
   };
 
@@ -274,7 +277,7 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
             ref={containerRef}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            className="relative max-w-full w-full max-h-[580px] flex items-center justify-center select-none shadow-2xl"
+            className={`relative max-w-full w-full max-h-[580px] flex items-center justify-center select-none shadow-2xl ${isPerspectiveMode ? 'touch-none' : ''}`}
           >
             {isPdf ? (
               <div className="w-full h-[560px] rounded-lg overflow-hidden border border-white/10 flex flex-col items-center justify-center bg-[#1A1A1A]">
@@ -375,12 +378,16 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
                       <div
                         key={cornerKey}
                         onPointerDown={(e) => handlePointerDownCorner(cornerKey, e)}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
                         style={{ left: `${leftPct}%`, top: `${topPct}%` }}
-                        className={`absolute -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 border-black shadow-[0_0_10px_#00FF88] cursor-grab active:cursor-grabbing flex items-center justify-center transition-transform hover:scale-125 z-20 ${
-                          activeCorner === cornerKey ? 'bg-white scale-125' : 'bg-[#00FF88]'
-                        }`}
+                        className="absolute -translate-x-1/2 -translate-y-1/2 w-14 h-14 cursor-grab active:cursor-grabbing flex items-center justify-center z-20 touch-none"
                       >
-                        <div className="w-2 h-2 rounded-full bg-black" />
+                        <div className={`w-6 h-6 rounded-full border-2 border-black shadow-[0_0_10px_#00FF88] flex items-center justify-center transition-transform hover:scale-125 ${
+                          activeCorner === cornerKey ? 'bg-white scale-125' : 'bg-[#00FF88]'
+                        }`}>
+                          <div className="w-2 h-2 rounded-full bg-black" />
+                        </div>
                       </div>
                     );
                   }
