@@ -44,13 +44,14 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
   const [contrast, setContrast] = useState<number>(10);
   const [rotation, setRotation] = useState<number>(0);
   const [targetFlow, setTargetFlow] = useState<ScanFlow>(initialFlow);
-  const [isPerspectiveMode, setIsPerspectiveMode] = useState<boolean>(false);
+  const isPdf = originalImageSrc.startsWith('data:application/pdf');
+  const [isPerspectiveMode, setIsPerspectiveMode] = useState<boolean>(!isPdf);
   const [corners, setCorners] = useState<CornerPoints | null>(null);
   const [activeCorner, setActiveCorner] = useState<keyof CornerPoints | null>(null);
   const [showSplitCompare, setShowSplitCompare] = useState<boolean>(false);
   const [compareSliderPos, setCompareSliderPos] = useState<number>(50);
 
-  const isPdf = originalImageSrc.startsWith('data:application/pdf');
+
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
