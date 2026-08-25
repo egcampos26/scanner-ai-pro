@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { HomeMenu } from './components/HomeMenu';
-import { CameraModal } from './components/CameraModal';
 import { CamScannerStudio } from './components/CamScannerStudio';
 import { WordResultViewer } from './components/WordResultViewer';
 import { ExcelResultViewer } from './components/ExcelResultViewer';
@@ -216,11 +215,6 @@ export default function App() {
     setErrorMessage(null);
   };
 
-  const handleOpenCamera = () => {
-    setAppMode('scanner');
-    setIsCameraOpen(true);
-  };
-
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#E0E0E0] flex flex-col font-sans selection:bg-[#00FF88] selection:text-black">
       {/* Top Navigation */}
@@ -248,7 +242,7 @@ export default function App() {
         {/* STEP 1: Upload & Document Selector */}
         {step === 'upload' && (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <HomeMenu onSelectMode={handleModeSelected} onOpenCamera={handleOpenCamera} />
+            <HomeMenu onSelectMode={handleModeSelected} />
           </div>
         )}
 
@@ -403,13 +397,6 @@ export default function App() {
           </div>
         )}
       </main>
-
-      {/* Camera Capture Modal */}
-      <CameraModal
-        isOpen={isCameraOpen}
-        onClose={() => setIsCameraOpen(false)}
-        onCapture={(dataUrl) => handleImageSelected(dataUrl, targetFlow)}
-      />
 
       {/* Help Modal */}
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />

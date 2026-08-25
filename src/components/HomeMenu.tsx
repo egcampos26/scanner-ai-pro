@@ -4,11 +4,11 @@ import { AppMode } from '../types';
 
 interface HomeMenuProps {
   onSelectMode: (mode: AppMode, file: File) => void;
-  onOpenCamera: () => void;
 }
 
-export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode, onOpenCamera }) => {
+export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const selectedModeRef = useRef<AppMode>('scanner');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -16,10 +16,9 @@ export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode, onOpenCamera }
     if (file) {
       onSelectMode(selectedModeRef.current, file);
     }
-    // Reset input so the same file can be selected again if needed
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    // Reset inputs
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const handleModeClick = (mode: AppMode) => {
@@ -27,13 +26,29 @@ export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode, onOpenCamera }
     fileInputRef.current?.click();
   };
 
+  const handleCameraClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    selectedModeRef.current = 'scanner';
+    cameraInputRef.current?.click();
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-12 animate-in fade-in duration-200">
-      {/* Hidden File Input */}
+      {/* Hidden File Input (Gallery/Files) */}
       <input
         ref={fileInputRef}
         type="file"
         accept={selectedModeRef.current === 'scanner' ? 'image/*' : 'image/*,application/pdf'}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      
+      {/* Hidden File Input (Native Camera on Mobile) */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -82,10 +97,7 @@ export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode, onOpenCamera }
               Galeria
             </div>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenCamera();
-              }}
+              onClick={handleCameraClick}
               className="inline-flex items-center justify-center p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/10 transition-colors"
               title="Abrir Câmera"
             >
