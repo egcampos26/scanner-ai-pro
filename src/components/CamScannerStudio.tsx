@@ -83,26 +83,7 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
   const warpedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageObjRef = useRef<HTMLImageElement | null>(null);
 
-  // Load original image and initialize corners
-  useEffect(() => {
-    if (isPdf) return; // Skip image logic for PDFs
 
-    const img = new Image();
-    img.onload = () => {
-      imageObjRef.current = img;
-      const initialCorners = getDefaultCorners(img.naturalWidth, img.naturalHeight, 0.04);
-      setCorners(initialCorners);
-      renderProcessedImage(img, initialCorners, filter, brightness, contrast, rotation);
-    };
-    img.src = originalImageSrc;
-  }, [originalImageSrc]);
-
-  // Re-render when parameters change
-  useEffect(() => {
-    if (imageObjRef.current && corners) {
-      renderProcessedImage(imageObjRef.current, corners, filter, brightness, contrast, rotation);
-    }
-  }, [filter, brightness, contrast, rotation, corners, isPerspectiveMode, renderProcessedImage]);
 
   const renderProcessedImage = useCallback(
     (
@@ -150,6 +131,27 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
     },
     [isPerspectiveMode]
   );
+
+  // Load original image and initialize corners
+  useEffect(() => {
+    if (isPdf) return; // Skip image logic for PDFs
+
+    const img = new Image();
+    img.onload = () => {
+      imageObjRef.current = img;
+      const initialCorners = getDefaultCorners(img.naturalWidth, img.naturalHeight, 0.04);
+      setCorners(initialCorners);
+      renderProcessedImage(img, initialCorners, filter, brightness, contrast, rotation);
+    };
+    img.src = originalImageSrc;
+  }, [originalImageSrc, isPdf, renderProcessedImage]);
+
+  // Re-render when parameters change
+  useEffect(() => {
+    if (imageObjRef.current && corners) {
+      renderProcessedImage(imageObjRef.current, corners, filter, brightness, contrast, rotation);
+    }
+  }, [filter, brightness, contrast, rotation, corners, isPerspectiveMode, renderProcessedImage]);
 
   const handleRotate = () => {
     setRotation((prev) => (prev + 90) % 360);
