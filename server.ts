@@ -230,26 +230,18 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
       throw new Error('Falha ao obter resposta do modelo Gemini após várias tentativas.');
     }
 
-    const responseText = extractionResponse.text || '{}';
+    let cleanedResponse = extractionResponse.text || '{}';
+    cleanedResponse = cleanedResponse.trim();
+    if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse.replace(/^```(?:json|html)?/, '').replace(/```$/, '').trim();
+    }
+
     let parsedResult;
     try {
-      parsedResult = JSON.parse(responseText);
+      parsedResult = JSON.parse(cleanedResponse);
     } catch (parseError) {
-      console.error('Failed to parse Gemini JSON output:', responseText);
-      // Fallback object
-      parsedResult = {
-        detectedType: targetFlow === 'excel' ? 'excel' : 'word',
-        documentClassification: 'Documento Digitalizado',
-        documentTitle: 'Documento Digitalizado',
-        language: 'pt-BR',
-        confidenceScore: 85,
-        elementsDetected: { hasSignatures: false, hasStamps: false, hasLogos: false, hasBarcodes: false, signaturesCount: 0, stampsCount: 0 },
-        incomprehensibleCount: 0,
-        markdownContent: responseText,
-        tableData: { tabelas: [] },
-        summary: 'Documento processado com sucesso.',
-        suggestedFileName: 'documento_digitalizado',
-      };
+      console.error('Failed to parse Gemini JSON output:', cleanedResponse);
+      throw new Error('A Inteligência Artificial gerou um layout tão complexo que ocorreu um erro interno de formatação. Por favor, clique em "Extrair com IA" novamente.');
     }
 
     res.json({
