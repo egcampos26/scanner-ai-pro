@@ -101,7 +101,7 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
     if (imageObjRef.current && corners) {
       renderProcessedImage(imageObjRef.current, corners, filter, brightness, contrast, rotation);
     }
-  }, [filter, brightness, contrast, rotation, corners]);
+  }, [filter, brightness, contrast, rotation, corners, isPerspectiveMode, renderProcessedImage]);
 
   const renderProcessedImage = useCallback(
     (
