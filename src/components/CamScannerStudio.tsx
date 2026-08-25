@@ -136,15 +136,17 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
   useEffect(() => {
     if (isPdf) return; // Skip image logic for PDFs
 
+    let isMounted = true;
     const img = new Image();
     img.onload = () => {
+      if (!isMounted) return;
       imageObjRef.current = img;
       const initialCorners = getDefaultCorners(img.naturalWidth, img.naturalHeight, 0.04);
       setCorners(initialCorners);
-      renderProcessedImage(img, initialCorners, filter, brightness, contrast, rotation);
     };
     img.src = originalImageSrc;
-  }, [originalImageSrc, isPdf, renderProcessedImage]);
+    return () => { isMounted = false; };
+  }, [originalImageSrc, isPdf]);
 
   // Re-render when parameters change
   useEffect(() => {
