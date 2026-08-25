@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
-import { ScannerUploader } from './components/ScannerUploader';
+import { HomeMenu } from './components/HomeMenu';
 import { CameraModal } from './components/CameraModal';
 import { CamScannerStudio } from './components/CamScannerStudio';
 import { WordResultViewer } from './components/WordResultViewer';
@@ -17,7 +17,7 @@ import {
   ScanFlow,
   ScanResultData,
   ScannedDocumentHistory,
-  SampleDoc,
+  AppMode,
   TableDataWrapper,
 } from './types';
 import {
@@ -26,7 +26,6 @@ import {
   Image as ImageIcon,
   Sparkles,
   ArrowLeft,
-  RotateCcw,
   AlertCircle,
   Download,
 } from 'lucide-react';
@@ -35,6 +34,7 @@ type AppStep = 'upload' | 'studio' | 'result';
 
 export default function App() {
   const [step, setStep] = useState<AppStep>('upload');
+  const [appMode, setAppMode] = useState<AppMode>(null);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
   const [targetFlow, setTargetFlow] = useState<ScanFlow>('auto');
@@ -82,7 +82,23 @@ export default function App() {
     localStorage.removeItem('docscan_history');
   };
 
-  const handleImageSelected = (imageDataUrl: string, flow: ScanFlow, sampleInfo?: SampleDoc) => {
+  const handleModeSelected = (mode: AppMode, file: File) => {
+    setAppMode(mode);
+    setTargetFlow(mode === 'ocr' ? 'auto' : 'word_visual'); // Default flow based on mode
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setOriginalImage(dataUrl);
+        setErrorMessage(null);
+        setStep('studio');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageSelected = (imageDataUrl: string, flow: ScanFlow) => {
     setOriginalImage(imageDataUrl);
     setTargetFlow(flow);
     setErrorMessage(null);
@@ -193,6 +209,7 @@ export default function App() {
 
   const handleReset = () => {
     setStep('upload');
+    setAppMode(null);
     setOriginalImage(null);
     setEnhancedImage(null);
     setScanResult(null);
@@ -225,33 +242,8 @@ export default function App() {
 
         {/* STEP 1: Upload & Document Selector */}
         {step === 'upload' && (
-          <div className="space-y-8 animate-in fade-in duration-200">
-            <div className="text-center max-w-2xl mx-auto space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#141414] rounded-full border border-white/10 text-[11px] font-mono text-[#00FF88] mb-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00FF88] shadow-[0_0_8px_#00FF88]" />
-                SCANNER & CONVERSOR MULTIMODAL
-              </div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
-                Digitalizador Inteligente de Documentos & OCR
-              </h1>
-              <p className="text-sm text-white/50 leading-relaxed">
-                Transforme fotos de documentos em arquivos limpos do <strong className="text-white">Microsoft Word (.docx)</strong> ou{' '}
-                <strong className="text-white">Microsoft Excel (.xlsx)</strong> com melhoria visual CamScanner e zero alucinação.
-              </p>
-            </div>
-
-            <ScannerUploader
-              onImageSelected={handleImageSelected}
-              onOpenCamera={() => setIsCameraOpen(true)}
-              isLoading={isScanning}
-            />
-
-            {/* Recent Scans History */}
-            <HistoryDrawer
-              history={history}
-              onSelectHistory={handleSelectHistoryItem}
-              onClearHistory={handleClearHistory}
-            />
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <HomeMenu onSelectMode={handleModeSelected} />
           </div>
         )}
 
@@ -270,6 +262,7 @@ export default function App() {
             </div>
 
             <CamScannerStudio
+              appMode={appMode}
               originalImageSrc={originalImage}
               initialFlow={targetFlow}
               onProceedToOCR={handleProceedToOCR}

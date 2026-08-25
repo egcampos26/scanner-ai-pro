@@ -14,7 +14,7 @@ import {
   FileSpreadsheet,
   Zap,
 } from 'lucide-react';
-import { CornerPoints, FilterPreset, ScanFlow } from '../types';
+import { CornerPoints, FilterPreset, ScanFlow, AppMode } from '../types';
 import {
   applyDocumentFilter,
   getDefaultCorners,
@@ -23,6 +23,7 @@ import {
 } from '../utils/imageProcessing';
 
 interface CamScannerStudioProps {
+  appMode?: AppMode;
   originalImageSrc: string;
   initialFlow: ScanFlow;
   onProceedToOCR: (enhancedImageDataUrl: string, targetFlow: ScanFlow) => void;
@@ -31,6 +32,7 @@ interface CamScannerStudioProps {
 }
 
 export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
+  appMode,
   originalImageSrc,
   initialFlow,
   onProceedToOCR,
@@ -224,42 +226,44 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
           </div>
         </div>
 
-        {/* Target Format Switcher */}
-        <div className="flex items-center gap-2 bg-[#181818] border border-white/10 p-1 rounded-xl">
-          <button
-            type="button"
-            onClick={() => setTargetFlow('auto')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
-              targetFlow === 'auto'
-                ? 'bg-[#252525] text-white shadow-sm border border-white/15 font-semibold'
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            AUTO
-          </button>
-          <button
-            type="button"
-            onClick={() => setTargetFlow('word')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 ${
-              targetFlow === 'word'
-                ? 'bg-blue-600 text-white font-semibold'
-                : 'text-white/60 hover:text-blue-400'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" /> Word (.docx)
-          </button>
-          <button
-            type="button"
-            onClick={() => setTargetFlow('excel')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
-              targetFlow === 'excel'
-                ? 'bg-[#00FF88] text-black shadow-[0_0_12px_rgba(0,255,136,0.25)]'
-                : 'text-white/60 hover:text-[#00FF88]'
-            }`}
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" /> Excel (.xlsx)
-          </button>
-        </div>
+        {/* Target Format Switcher - HIDE in Scanner mode */}
+        {appMode !== 'scanner' && (
+          <div className="flex items-center gap-2 bg-[#181818] border border-white/10 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setTargetFlow('auto')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
+                targetFlow === 'auto'
+                  ? 'bg-[#252525] text-white shadow-sm border border-white/15 font-semibold'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              AUTO
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetFlow('word')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 ${
+                targetFlow === 'word'
+                  ? 'bg-blue-600 text-white font-semibold'
+                  : 'text-white/60 hover:text-blue-400'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" /> Word (.docx)
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetFlow('excel')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+                targetFlow === 'excel'
+                  ? 'bg-[#00FF88] text-black shadow-[0_0_12px_rgba(0,255,136,0.25)]'
+                  : 'text-white/60 hover:text-[#00FF88]'
+              }`}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Excel (.xlsx)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Workspace Layout */}
@@ -597,8 +601,8 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
             </div>
           )}
 
-          {/* Formato de Excel Toggle */}
-          {targetFlow.startsWith('excel') && (
+          {/* Formato de Excel Toggle - HIDE in Scanner mode */}
+          {appMode !== 'scanner' && targetFlow.startsWith('excel') && (
             <div className="bg-[#111111] border border-white/10 rounded-2xl p-4 shadow-sm space-y-3">
               <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-white/80 mb-2">
                 Modo de Extração Excel
@@ -630,8 +634,8 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
             </div>
           )}
 
-          {/* Formato de Word Toggle */}
-          {targetFlow.startsWith('word') && (
+          {/* Formato de Word Toggle - HIDE in Scanner mode */}
+          {appMode !== 'scanner' && targetFlow.startsWith('word') && (
             <div className="bg-[#111111] border border-white/10 rounded-2xl p-4 shadow-sm space-y-3">
               <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-white/80 mb-2">
                 Modo de Extração Word
@@ -663,32 +667,43 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
             </div>
           )}
 
-          {/* Primary Action Button: Proceed to Multimodal OCR */}
+          {/* Primary Action Button */}
           <div className="space-y-2.5">
-            <button
-              type="button"
-              disabled={isProcessingOCR}
-              onClick={handleConfirmAndScan}
-              className="w-full py-3.5 px-4 bg-[#00FF88] hover:bg-[#00FF88]/90 active:scale-[0.99] disabled:opacity-50 text-black font-mono font-bold uppercase tracking-wider rounded-xl text-sm shadow-[0_0_20px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              {isProcessingOCR ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  <span>Processando OCR com IA...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-black" />
-                  <span>
-                    {targetFlow === 'word'
-                      ? 'Extrair em Word (.docx)'
-                      : targetFlow.startsWith('excel')
-                      ? 'Extrair em Excel (.xlsx)'
-                      : 'Extrair com IA (Auto)'}
-                  </span>
-                </>
-              )}
-            </button>
+            {appMode === 'scanner' ? (
+              <button
+                type="button"
+                onClick={handleDownloadEnhancedImage}
+                className="w-full py-3.5 px-4 bg-[#00FF88] hover:bg-[#00FF88]/90 active:scale-[0.99] text-black font-mono font-bold uppercase tracking-wider rounded-xl text-sm shadow-[0_0_20px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-black" />
+                <span>Salvar Imagem Digitalizada</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isProcessingOCR}
+                onClick={handleConfirmAndScan}
+                className="w-full py-3.5 px-4 bg-[#00FF88] hover:bg-[#00FF88]/90 active:scale-[0.99] disabled:opacity-50 text-black font-mono font-bold uppercase tracking-wider rounded-xl text-sm shadow-[0_0_20px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                {isProcessingOCR ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                    <span>Processando OCR com IA...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-black" />
+                    <span>
+                      {targetFlow === 'word'
+                        ? 'Extrair em Word (.docx)'
+                        : targetFlow.startsWith('excel')
+                        ? 'Extrair em Excel (.xlsx)'
+                        : 'Extrair com IA (Auto)'}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
 
             <button
               type="button"

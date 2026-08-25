@@ -1,4 +1,5 @@
-export type ScanFlow = 'auto' | 'word' | 'word_visual' | 'excel' | 'excel_visual';
+export type ScanFlow = 'word' | 'excel' | 'auto' | 'excel_visual' | 'word_visual';
+export type AppMode = 'scanner' | 'ocr' | null;
 
 export type FilterPreset = 'magic_color' | 'bw' | 'grayscale' | 'original' | 'sharp';
 
