@@ -40,23 +40,27 @@ export const WordResultViewer: React.FC<WordResultViewerProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isVisualMode = !!result.wordHtml;
+
   const handleExportDocx = async () => {
     setIsExporting(true);
     try {
-      await exportToWordDocx(markdown, result.documentTitle || 'Documento_Contrato', {
-        classification: result.documentClassification,
-        language: result.language,
-        incomprehensibleCount: incomprehensibleMatches,
-      });
+      if (isVisualMode && result.wordHtml) {
+        exportToWordVisual(result.wordHtml, result.documentTitle || 'Documento_Contrato');
+      } else {
+        await exportToWordDocx(markdown, result.documentTitle || 'Documento_Contrato', {
+          classification: result.documentClassification,
+          language: result.language,
+          incomprehensibleCount: incomprehensibleMatches,
+        });
+      }
     } catch (e) {
       console.error('Export docx error:', e);
-      alert('Erro ao gerar arquivo Word (.docx).');
+      alert('Erro ao gerar arquivo Word.');
     } finally {
       setIsExporting(false);
     }
   };
-
-  const isVisualMode = !!result.wordHtml;
 
   const handleChangeText = (newVal: string) => {
     if (isVisualMode) return; // Cannot edit raw HTML in simple text area safely
