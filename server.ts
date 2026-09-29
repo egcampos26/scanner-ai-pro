@@ -154,25 +154,32 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
 
     // Structure the response format
     let extractionResponse;
-    let attempts = 0;
-    const maxAttempts = 3;
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+    let lastError: any = null;
 
-    while (attempts < maxAttempts) {
-      try {
-        extractionResponse = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  inlineData: {
-                    data: base64Data,
-                    mimeType: cleanMimeType,
+    for (const model of modelsToTry) {
+      if (extractionResponse) break;
+      
+      let attempts = 0;
+      const maxAttempts = 2; // Try each model up to 2 times
+
+      while (attempts < maxAttempts) {
+        try {
+          console.log(`Tentando requisição com o modelo: ${model} (Tentativa ${attempts + 1}/${maxAttempts})`);
+          extractionResponse = await ai.models.generateContent({
+            model: model,
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      data: base64Data,
+                      mimeType: cleanMimeType,
+                    },
                   },
-                },
-                {
-                  text: `${userPrompt}\n\nRetorne sua resposta final em um objeto JSON com as seguintes propriedades:
+                  {
+                    text: `${userPrompt}\n\nRetorne sua resposta final em um objeto JSON com as seguintes propriedades:
 {
   "detectedType": "word" | "excel" | "mixed",
   "documentClassification": "Contrato" | "Nota Fiscal" | "Extrato Bancário" | "Recibo" | "Relatório" | "Petição" | "Outro",
@@ -204,30 +211,33 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
   "summary": "Resumo de 2 linhas sobre o documento digitalizado",
   "suggestedFileName": "nome_do_arquivo_sem_extensao"
 }`,
-                },
-              ],
+                  },
+                ],
+              },
+            ],
+            config: {
+              systemInstruction,
+              responseMimeType: 'application/json',
+              temperature: 0.1, // High precision, zero hallucination
             },
-          ],
-          config: {
-            systemInstruction,
-            responseMimeType: 'application/json',
-            temperature: 0.1, // High precision, zero hallucination
-          },
-        });
-        break; // Success
-      } catch (err: any) {
-        attempts++;
-        if (err.message && (err.message.includes('503') || err.message.includes('fetch failed')) && attempts < maxAttempts) {
-          console.warn(`Gemini API Error: ${err.message}. Retrying attempt ${attempts} of ${maxAttempts}...`);
-          await new Promise((r) => setTimeout(r, 2000 * attempts));
-        } else {
-          throw err;
+          });
+          break; // Success with this model
+        } catch (err: any) {
+          attempts++;
+          lastError = err;
+          if (err.message && (err.message.includes('503') || err.message.includes('429') || err.message.includes('fetch failed')) && attempts < maxAttempts) {
+            console.warn(`[${model}] Erro temporário da API (503/429/fetch). Retentando em ${2000 * attempts}ms...`);
+            await new Promise((r) => setTimeout(r, 2000 * attempts));
+          } else {
+            console.warn(`[${model}] Erro definitivo (${err.message}). Avançando para o próximo modelo se disponível.`);
+            break; // Move to the next model in modelsToTry
+          }
         }
       }
     }
 
     if (!extractionResponse) {
-      throw new Error('Falha ao obter resposta do modelo Gemini após várias tentativas.');
+      throw new Error(`Falha ao processar com todos os modelos de IA tentados. Último erro: ${lastError?.message || 'Desconhecido'}`);
     }
 
     let cleanedResponse = extractionResponse.text || '{}';
@@ -289,29 +299,39 @@ Retorne JSON no formato:
 }`;
 
     let response;
-    let refineAttempts = 0;
-    while (refineAttempts < 3) {
-      try {
-        response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            temperature: 0.2,
-          },
-        });
-        break;
-      } catch (err: any) {
-        refineAttempts++;
-        if (err.message && (err.message.includes('503') || err.message.includes('fetch failed')) && refineAttempts < 3) {
-          await new Promise((r) => setTimeout(r, 1500 * refineAttempts));
-        } else {
-          throw err;
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+    let lastError: any = null;
+
+    for (const model of modelsToTry) {
+      if (response) break;
+      let refineAttempts = 0;
+      const maxAttempts = 2;
+      
+      while (refineAttempts < maxAttempts) {
+        try {
+          console.log(`[Refine] Tentando modelo: ${model} (Tentativa ${refineAttempts + 1}/${maxAttempts})`);
+          response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              temperature: 0.2,
+            },
+          });
+          break;
+        } catch (err: any) {
+          refineAttempts++;
+          lastError = err;
+          if (err.message && (err.message.includes('503') || err.message.includes('429') || err.message.includes('fetch failed')) && refineAttempts < maxAttempts) {
+            await new Promise((r) => setTimeout(r, 1500 * refineAttempts));
+          } else {
+            break; // Move to next model
+          }
         }
       }
     }
     
-    if (!response) throw new Error('Refinamento falhou.');
+    if (!response) throw new Error(`Refinamento falhou em todos os modelos. Último erro: ${lastError?.message || 'Desconhecido'}`);
 
     const parsed = JSON.parse(response.text || '{}');
     res.json({ success: true, data: parsed });
