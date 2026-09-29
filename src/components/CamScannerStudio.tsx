@@ -182,7 +182,24 @@ export const CamScannerStudio: React.FC<CamScannerStudioProps> = ({
     }
     
     if (!canvasRef.current) return;
-    const enhancedDataUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
+
+    const canvas = canvasRef.current;
+    let finalCanvas = canvas;
+    const maxDimension = 1500; // Optimize for API quota
+
+    if (canvas.width > maxDimension || canvas.height > maxDimension) {
+      const scale = Math.min(maxDimension / canvas.width, maxDimension / canvas.height);
+      const scaledCanvas = document.createElement('canvas');
+      scaledCanvas.width = canvas.width * scale;
+      scaledCanvas.height = canvas.height * scale;
+      const ctx = scaledCanvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+        finalCanvas = scaledCanvas;
+      }
+    }
+
+    const enhancedDataUrl = finalCanvas.toDataURL('image/jpeg', 0.85);
     onProceedToOCR(enhancedDataUrl, targetFlow);
   };
 
