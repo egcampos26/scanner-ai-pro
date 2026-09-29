@@ -217,8 +217,8 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
         break; // Success
       } catch (err: any) {
         attempts++;
-        if (err.message && err.message.includes('503') && attempts < maxAttempts) {
-          console.warn(`Gemini 503 High Demand Error. Retrying attempt ${attempts} of ${maxAttempts}...`);
+        if (err.message && (err.message.includes('503') || err.message.includes('fetch failed')) && attempts < maxAttempts) {
+          console.warn(`Gemini API Error: ${err.message}. Retrying attempt ${attempts} of ${maxAttempts}...`);
           await new Promise((r) => setTimeout(r, 2000 * attempts));
         } else {
           throw err;
@@ -303,7 +303,7 @@ Retorne JSON no formato:
         break;
       } catch (err: any) {
         refineAttempts++;
-        if (err.message && err.message.includes('503') && refineAttempts < 3) {
+        if (err.message && (err.message.includes('503') || err.message.includes('fetch failed')) && refineAttempts < 3) {
           await new Promise((r) => setTimeout(r, 1500 * refineAttempts));
         } else {
           throw err;
