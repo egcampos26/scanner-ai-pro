@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
+import { PdfService } from './pdfService.js';
 
 dotenv.config();
 
@@ -11,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Body parser with 50mb limit for high-res document scans
 app.use(express.json({ limit: '50mb' }));
@@ -40,6 +41,228 @@ function getGenAI(): GoogleGenAI {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Inspect PDF endpoint
+app.post('/api/pdf/inspect', async (req, res) => {
+  try {
+    const { pdfBase64 } = req.body;
+    if (!pdfBase64) {
+      return res.status(400).json({ error: 'Nenhum arquivo PDF fornecido.' });
+    }
+    const cleanBase64 = pdfBase64.includes('base64,') ? pdfBase64.split('base64,')[1] : pdfBase64;
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    const info = await PdfService.inspectPdf(buffer);
+    res.json({ success: true, info });
+  } catch (error: any) {
+    console.error('PDF Inspect Error:', error);
+    res.status(500).json({ error: error.message || 'Falha ao inspecionar PDF.' });
+  }
+});
+
+// Split PDF into individual pages endpoint
+app.post('/api/pdf/split', async (req, res) => {
+  try {
+    const { pdfBase64 } = req.body;
+    if (!pdfBase64) {
+      return res.status(400).json({ error: 'Nenhum arquivo PDF fornecido.' });
+    }
+    const cleanBase64 = pdfBase64.includes('base64,') ? pdfBase64.split('base64,')[1] : pdfBase64;
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    const result = await PdfService.splitPdfIntoPages(buffer);
+    res.json({ success: true, pageCount: result.pageCount, pages: result.pages });
+  } catch (error: any) {
+    console.error('PDF Split Error:', error);
+    res.status(500).json({ error: error.message || 'Falha ao dividir páginas do PDF.' });
+  }
+});
+
+// Extract single page data (tuned for Ergon PMSP & general multi-page municipal docs)
+app.post('/api/pdf/extract-page-data', async (req, res) => {
+  try {
+    const { pageBase64, pageNumber, totalPages } = req.body;
+    if (!pageBase64) {
+      return res.status(400).json({ error: 'Nenhum dado de página fornecido.' });
+    }
+
+    const ai = getGenAI();
+    const cleanBase64 = pageBase64.includes('base64,') ? pageBase64.split('base64,')[1] : pageBase64;
+
+    const pagePrompt = `Você é um extrator de alta precisão especializado em relatórios de Recursos Humanos da Prefeitura de São Paulo (Sistema ERGON - REPFICH2) e documentos públicos.
+Você está analisando a PÁGINA ${pageNumber} de um total de ${totalPages} páginas.
+
+SUA MISSÃO:
+Extrair absolutamente TODOS os dados contidos nesta página específica com 100% de fidelidade, sem omitir nenhuma linha de tabela e sem resumir nada.
+
+DIRETRIZES ESPECÍFICAS PARA CADA SEÇÃO:
+
+1. DADOS CADASTRAIS DO SERVIDOR (comum na Página 1):
+   - Extraia com exatidão: Número/RF, Nome completo, RG, Órgão Emissor, UF, CPF, Nacionalidade, Estado Civil, Sexo, Data de Nascimento, Nome do Pai, Nome da Mãe.
+
+2. DADOS DO VÍNCULO (comum na Página 1):
+   - Número do vínculo, Data de Nomeação, Data de Posse, Data de Exercício, Categoria (ex: QPE LEI 14660/07), Regime Jurídico (ex: ESTATUTARIO), Tipo de Vínculo, Matrícula1, Matrícula2, Aposentadoria, Vacância.
+
+3. TABELA DE FREQUÊNCIA (comum nas Páginas 1 a 11):
+   - Extraia TODAS as linhas de frequência sem exceção.
+   - Colunas:
+     * periodoInicio (DD/MM/AAAA)
+     * periodoFim (DD/MM/AAAA)
+     * quantidade (número ou vazio)
+     * codigo (ex: 1, 96, 101, 102, 103, 198)
+     * tipo (ex: JEX, TEX, PADRAO, GRAT SERV NOTURNO, AUX REFEICAO EVENT)
+     * descricao (ex: "Jornada Especial Hora Aula Excedente", "Falta Abonada - Docentes", "Horas Aulas não Dadas", "Falta Parcial Justificada", "Estorno de Auxílio Refeição", "Requisição Justiça Eleitoral Folga Compensatória")
+
+4. TABELA DE LICENÇA AFASTAMENTO (comum nas Páginas 11 e 12):
+   - Extraia TODAS as linhas da tabela de licenças/afastamentos.
+   - Colunas:
+     * periodoInicio (DD/MM/AAAA)
+     * periodoFim (DD/MM/AAAA)
+     * dias (número)
+     * codigo (ex: 11, 12, 166, 175, 187)
+     * descricao (ex: "Licença Médica do Servidor por Concessão da Chefia da Unidad", "Licença Médica Pericial", "DEC 59283 - TELETRABALHO", "Licença para o próprio servidor")
+     * motivo (ex: "PUBLICAÇÃO EM D.O.M 09/04/14 PAG. 42", número de laudo, etc.)
+
+5. MAPA DE FREQUÊNCIA (comum nas Páginas 13 a 21):
+   - Cada página contém uma grade mensal (JAN a DEZ) com dias de 1 a 31 para um ou mais anos (ex: 2014, 2015, etc.).
+   - Extraia para cada ano e mês visível os dias que contêm códigos de frequência (ex: FER, FDA, HAN, FDJ, LMU, TTB, LMP, FJE, FAA, etc.). Os dias sem ocorrência (pontinhos ...) podem ser ignorados ou marcados como "...".
+
+6. CABEÇALHO E RODAPÉ DA PÁGINA:
+   - Extraia a página (ex: "1 / 21"), data/hora de emissão e código de referência (ex: "REPFICH2").
+   - Extraia o rodapé (ex: Ergon - Recursos Humanos, Versão 6.4, Nome do banco: ORA039).
+
+RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
+{
+  "pageNumber": ${pageNumber},
+  "totalPages": ${totalPages},
+  "header": {
+    "instituicao": "Prefeitura do Município de São Paulo",
+    "departamento": "Coordenadoria de Gestão de Pessoas",
+    "emissao": "string",
+    "referencia": "REPFICH2"
+  },
+  "hasServidor": boolean,
+  "servidor": {
+    "numero": "string",
+    "nome": "string",
+    "rg": "string",
+    "ssp": "string",
+    "cpf": "string",
+    "nacionalidade": "string",
+    "estadoCivil": "string",
+    "sexo": "string",
+    "dataNascimento": "string",
+    "pai": "string",
+    "mae": "string"
+  },
+  "hasVinculo": boolean,
+  "vinculo": {
+    "numero": "string",
+    "nomeacao": "string",
+    "posse": "string",
+    "exercicio": "string",
+    "categoria": "string",
+    "regimeJuridico": "string",
+    "tipoVinculo": "string",
+    "matricula1": "string",
+    "matricula2": "string"
+  },
+  "frequencias": [
+    {
+      "periodoInicio": "DD/MM/AAAA",
+      "periodoFim": "DD/MM/AAAA",
+      "quantidade": "string ou number",
+      "codigo": "string ou number",
+      "tipo": "string",
+      "descricao": "string"
+    }
+  ],
+  "licencas": [
+    {
+      "periodoInicio": "DD/MM/AAAA",
+      "periodoFim": "DD/MM/AAAA",
+      "dias": "string ou number",
+      "codigo": "string ou number",
+      "descricao": "string",
+      "motivo": "string"
+    }
+  ],
+  "mapaFrequencia": [
+    {
+      "ano": "string ou number",
+      "meses": [
+        {
+          "mes": "JAN",
+          "dias": { "1": "FER", "2": "FER" }
+        }
+      ]
+    }
+  ],
+  "footer": {
+    "sistema": "Ergon",
+    "modulo": "Ergon - Recursos Humanos",
+    "versao": "6.4",
+    "banco": "ORA039"
+  }
+}`;
+
+    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.6-flash'];
+    let pageResponse: any = null;
+    let lastError: any = null;
+
+    for (const model of modelsToTry) {
+      if (pageResponse) break;
+      let attempts = 0;
+      while (attempts < 2) {
+        try {
+          pageResponse = await ai.models.generateContent({
+            model: model,
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      data: cleanBase64,
+                      mimeType: 'application/pdf',
+                    },
+                  },
+                  {
+                    text: pagePrompt,
+                  },
+                ],
+              },
+            ],
+            config: {
+              responseMimeType: 'application/json',
+              temperature: 0.0,
+            },
+          });
+          break;
+        } catch (err: any) {
+          attempts++;
+          lastError = err;
+          if (attempts < 2) await new Promise((r) => setTimeout(r, 1500));
+        }
+      }
+    }
+
+    if (!pageResponse) {
+      throw new Error(`Falha ao extrair página ${pageNumber}: ${lastError?.message || 'Desconhecido'}`);
+    }
+
+    let cleaned = pageResponse.text || '{}';
+    cleaned = cleaned.trim().replace(/^```(?:json)?/, '').replace(/```$/, '').trim();
+    const parsedData = JSON.parse(cleaned);
+
+    res.json({
+      success: true,
+      pageNumber,
+      data: parsedData,
+    });
+  } catch (error: any) {
+    console.error(`Page Extract Error (Page ${req.body?.pageNumber}):`, error);
+    res.status(500).json({ error: error.message || 'Falha ao processar página do documento.' });
+  }
 });
 
 // Document Scan & Multimodal OCR Endpoint
@@ -154,7 +377,7 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
 
     // Structure the response format
     let extractionResponse;
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.6-flash'];
     let lastError: any = null;
 
     for (const model of modelsToTry) {
@@ -299,7 +522,7 @@ Retorne JSON no formato:
 }`;
 
     let response;
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.6-flash'];
     let lastError: any = null;
 
     for (const model of modelsToTry) {

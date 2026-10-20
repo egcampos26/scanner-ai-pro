@@ -13,12 +13,15 @@ import { ExcelResultViewer } from './components/ExcelResultViewer';
 import { DocumentRefiner } from './components/DocumentRefiner';
 import { HelpModal } from './components/HelpModal';
 import { HistoryDrawer } from './components/HistoryDrawer';
+import { ErgonDocumentViewer } from './components/ErgonDocumentViewer';
+import { MultiPageProcessorModal } from './components/MultiPageProcessorModal';
 import {
   ScanFlow,
   ScanResultData,
   ScannedDocumentHistory,
   AppMode,
   TableDataWrapper,
+  ErgonConsolidatedDocument,
 } from './types';
 import {
   FileText,
@@ -30,7 +33,7 @@ import {
   Download,
 } from 'lucide-react';
 
-type AppStep = 'upload' | 'studio' | 'result';
+type AppStep = 'upload' | 'studio' | 'result' | 'ergon_result';
 
 export default function App() {
   const [step, setStep] = useState<AppStep>('upload');
@@ -46,6 +49,11 @@ export default function App() {
   const [activeResultTab, setActiveResultTab] = useState<'word' | 'excel' | 'visual'>('word');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [history, setHistory] = useState<ScannedDocumentHistory[]>([]);
+
+  // Multi-page PDF Ergon state
+  const [isMultiPageModalOpen, setIsMultiPageModalOpen] = useState<boolean>(false);
+  const [multiPagePdfDataUrl, setMultiPagePdfDataUrl] = useState<string | null>(null);
+  const [ergonDocument, setErgonDocument] = useState<ErgonConsolidatedDocument | null>(null);
 
   // Load history on start
   useEffect(() => {
@@ -87,15 +95,40 @@ export default function App() {
     setTargetFlow(mode === 'ocr' ? 'auto' : 'word_visual'); // Default flow based on mode
     
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setOriginalImage(dataUrl);
-        setErrorMessage(null);
-        setStep('studio');
+      if (!dataUrl) return;
+
+      // If PDF file, inspect if it's multi-page or if user explicitly chose reconstruct_pdf
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        try {
+          const inspRes = await fetch('/api/pdf/inspect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pdfBase64: dataUrl }),
+          });
+          const inspData = await inspRes.json();
+          if (inspData.success && (inspData.info?.pageCount > 1 || mode === 'reconstruct_pdf')) {
+            setMultiPagePdfDataUrl(dataUrl);
+            setIsMultiPageModalOpen(true);
+            return;
+          }
+        } catch (e) {
+          console.warn('PDF inspection failed, proceeding to standard studio flow', e);
+        }
       }
+
+      setOriginalImage(dataUrl);
+      setErrorMessage(null);
+      setStep('studio');
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleMultiPageComplete = (consolidatedDoc: ErgonConsolidatedDocument) => {
+    setIsMultiPageModalOpen(false);
+    setErgonDocument(consolidatedDoc);
+    setStep('ergon_result');
   };
 
   const handleImageSelected = (imageDataUrl: string, flow: ScanFlow) => {
@@ -213,6 +246,7 @@ export default function App() {
     setOriginalImage(null);
     setEnhancedImage(null);
     setScanResult(null);
+    setErgonDocument(null);
     setErrorMessage(null);
   };
 
@@ -402,6 +436,16 @@ export default function App() {
             <DocumentRefiner onRefine={handleRefineDocument} isLoading={isRefining} />
           </div>
         )}
+
+        {/* STEP 4: ERGON Multi-Page Reconstructed Document Result */}
+        {step === 'ergon_result' && ergonDocument && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <ErgonDocumentViewer
+              documentData={ergonDocument}
+              onBack={handleReset}
+            />
+          </div>
+        )}
       </main>
 
       {/* Camera Capture Modal */}
@@ -409,6 +453,14 @@ export default function App() {
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onCapture={(dataUrl) => handleImageSelected(dataUrl, targetFlow)}
+      />
+
+      {/* Multi-Page PDF Ergon Processor Modal */}
+      <MultiPageProcessorModal
+        isOpen={isMultiPageModalOpen}
+        pdfDataUrl={multiPagePdfDataUrl || ''}
+        onClose={() => setIsMultiPageModalOpen(false)}
+        onComplete={handleMultiPageComplete}
       />
 
       {/* Help Modal */}

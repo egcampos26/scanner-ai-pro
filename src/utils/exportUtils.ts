@@ -12,7 +12,7 @@ import {
   AlignmentType,
   BorderStyle,
 } from 'docx';
-import { TableDataWrapper } from '../types';
+import { TableDataWrapper, ErgonConsolidatedDocument } from '../types';
 
 /**
  * Exports extracted document text / Markdown to Microsoft Word (.docx)
@@ -446,4 +446,202 @@ export function downloadBlob(blob: Blob, fileName: string) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Exports consolidated ERGON document to Microsoft Word (.docx)
+ */
+export async function exportErgonToWordDocx(docData: ErgonConsolidatedDocument) {
+  const s = docData.servidor || {};
+  const v = docData.vinculo || {};
+  const paragraphs: (Paragraph | Table)[] = [];
+
+  // Title
+  paragraphs.push(
+    new Paragraph({
+      text: 'PREFEITURA DO MUNICÍPIO DE SÃO PAULO',
+      heading: HeadingLevel.HEADING_1,
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 100 },
+    }),
+    new Paragraph({
+      text: 'COORDENADORIA DE GESTÃO DE PESSOAS - SISTEMA ERGON (REPFICH2)',
+      heading: HeadingLevel.HEADING_2,
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 },
+    })
+  );
+
+  // Servidor
+  paragraphs.push(
+    new Paragraph({
+      text: 'DADOS DO SERVIDOR',
+      heading: HeadingLevel.HEADING_3,
+      spacing: { before: 200, after: 100 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Nome: ', bold: true }),
+        new TextRun(s.nome || ''),
+        new TextRun({ text: ' | RF/Número: ', bold: true }),
+        new TextRun(s.numero || ''),
+        new TextRun({ text: ' | CPF: ', bold: true }),
+        new TextRun(s.cpf || ''),
+        new TextRun({ text: ' | RG: ', bold: true }),
+        new TextRun(`${s.rg || ''} ${s.ssp || ''}`),
+      ],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Nascimento: ', bold: true }),
+        new TextRun(s.dataNascimento || ''),
+        new TextRun({ text: ' | Estado Civil: ', bold: true }),
+        new TextRun(s.estadoCivil || ''),
+        new TextRun({ text: ' | Sexo: ', bold: true }),
+        new TextRun(s.sexo || ''),
+      ],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Filiação: ', bold: true }),
+        new TextRun(`${s.pai || ''} e ${s.mae || ''}`),
+      ],
+      spacing: { after: 200 },
+    })
+  );
+
+  // Vínculo
+  paragraphs.push(
+    new Paragraph({
+      text: 'DADOS DO VÍNCULO',
+      heading: HeadingLevel.HEADING_3,
+      spacing: { before: 200, after: 100 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Vínculo Nº: ', bold: true }),
+        new TextRun(v.numero || ''),
+        new TextRun({ text: ' | Nomeação: ', bold: true }),
+        new TextRun(v.nomeacao || ''),
+        new TextRun({ text: ' | Posse: ', bold: true }),
+        new TextRun(v.posse || ''),
+        new TextRun({ text: ' | Exercício: ', bold: true }),
+        new TextRun(v.exercicio || ''),
+      ],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Categoria: ', bold: true }),
+        new TextRun(v.categoria || ''),
+        new TextRun({ text: ' | Regime: ', bold: true }),
+        new TextRun(v.regimeJuridico || ''),
+        new TextRun({ text: ' | Tipo: ', bold: true }),
+        new TextRun(v.tipoVinculo || ''),
+      ],
+      spacing: { after: 200 },
+    })
+  );
+
+  // Frequência Table
+  const allFreq = docData.frequencias || [];
+  if (allFreq.length > 0) {
+    paragraphs.push(
+      new Paragraph({
+        text: `HISTÓRICO COMPLETO DE FREQUÊNCIA (${allFreq.length} REGISTROS)`,
+        heading: HeadingLevel.HEADING_3,
+        spacing: { before: 200, after: 100 },
+      })
+    );
+
+    const freqTableRows: TableRow[] = [
+      new TableRow({
+        children: ['Período', 'Qtd', 'Cód', 'Tipo', 'Descrição'].map(
+          (h) =>
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+              shading: { fill: 'EEEEEE' },
+            })
+        ),
+      }),
+    ];
+
+    allFreq.forEach((f) => {
+      freqTableRows.push(
+        new TableRow({
+          children: [
+            `${f.periodoInicio} a ${f.periodoFim}`,
+            String(f.quantidade || ''),
+            String(f.codigo || ''),
+            String(f.tipo || ''),
+            String(f.descricao || ''),
+          ].map(
+            (c) =>
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: c, size: 18 })] })],
+              })
+          ),
+        })
+      );
+    });
+
+    paragraphs.push(new Table({ rows: freqTableRows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+  }
+
+  // Licença Table
+  const allLic = docData.licencas || [];
+  if (allLic.length > 0) {
+    paragraphs.push(
+      new Paragraph({
+        text: `LICENÇAS E AFASTAMENTOS (${allLic.length} REGISTROS)`,
+        heading: HeadingLevel.HEADING_3,
+        spacing: { before: 200, after: 100 },
+      })
+    );
+
+    const licTableRows: TableRow[] = [
+      new TableRow({
+        children: ['Período', 'Dias', 'Cód', 'Descrição', 'Motivo'].map(
+          (h) =>
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+              shading: { fill: 'EEEEEE' },
+            })
+        ),
+      }),
+    ];
+
+    allLic.forEach((l) => {
+      licTableRows.push(
+        new TableRow({
+          children: [
+            `${l.periodoInicio} a ${l.periodoFim}`,
+            String(l.dias || ''),
+            String(l.codigo || ''),
+            String(l.descricao || ''),
+            String(l.motivo || ''),
+          ].map(
+            (c) =>
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: c, size: 18 })] })],
+              })
+          ),
+        })
+      );
+    });
+
+    paragraphs.push(new Table({ rows: licTableRows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+  }
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: paragraphs,
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const safeName = (s.nome || 'Servidor').replace(/[^a-zA-Z0-9]/g, '_');
+  downloadBlob(blob, `Ergon_PMSP_${safeName}_REPFICH2.docx`);
 }
