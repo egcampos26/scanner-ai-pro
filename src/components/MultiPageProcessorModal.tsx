@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
+  Clock,
   X,
   Layers,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ export const MultiPageProcessorModal: React.FC<MultiPageProcessorModalProps> = (
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
   const [completedPages, setCompletedPages] = useState<number[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
   const isCancelledRef = useRef<boolean>(false);
 
@@ -86,9 +88,9 @@ export const MultiPageProcessorModal: React.FC<MultiPageProcessorModalProps> = (
 
           // Ajuste 1: Intervalo seguro de 3.5 segundos entre cada página para garantir zero rate-limit (429)
           if (i > 0) {
-            setErrorMessage(`Intervalo de segurança anti-cota (3.5s) antes da Página ${pages[i].pageNumber}...`);
+            setStatusNotice(`Pausa segura anti-cota (3.5s) antes da Página ${pages[i].pageNumber}...`);
             await new Promise((r) => setTimeout(r, 3500));
-            setErrorMessage(null);
+            setStatusNotice(null);
           }
 
           const p = pages[i];
@@ -139,6 +141,7 @@ export const MultiPageProcessorModal: React.FC<MultiPageProcessorModalProps> = (
               }
 
               setCompletedPages((prev) => [...prev, p.pageNumber]);
+              setStatusNotice(null);
               setErrorMessage(null);
             } catch (err: any) {
               retryCount++;
@@ -147,8 +150,9 @@ export const MultiPageProcessorModal: React.FC<MultiPageProcessorModalProps> = (
                 throw new Error(`Falha definitiva ao ler a Página ${p.pageNumber}: ${err.message}. Verifique sua conexão com a API e tente novamente.`);
               } else {
                 const waitMs = 4000 * retryCount;
-                setErrorMessage(`Página ${p.pageNumber}: cota da IA em espera. Retentando em ${waitMs / 1000}s (Tentativa ${retryCount}/6)...`);
+                setStatusNotice(`Cota temporária da IA em espera. Retomando Página ${p.pageNumber} em ${waitMs / 1000}s (Tentativa ${retryCount}/6)...`);
                 await new Promise((r) => setTimeout(r, waitMs));
+                setStatusNotice(null);
               }
             }
           }
@@ -291,8 +295,19 @@ export const MultiPageProcessorModal: React.FC<MultiPageProcessorModalProps> = (
           </div>
         )}
 
-        {/* Error State */}
-        {errorMessage && (
+        {/* Status Notice (Aguardando liberação cota gratuita - Opção A) */}
+        {statusNotice && stage !== 'error' && (
+          <div className="bg-amber-950/40 border border-amber-500/40 text-amber-200 rounded-2xl p-3.5 flex items-center gap-3 text-xs animate-pulse">
+            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="flex-1">
+              <span className="font-bold text-amber-300">Fila Inteligente (Modo Gratuito): </span>
+              <span>{statusNotice}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Real Error State */}
+        {stage === 'error' && errorMessage && (
           <div className="bg-rose-950/70 border border-rose-500/40 text-rose-200 rounded-2xl p-4 flex items-start gap-3 text-xs">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <div className="flex-1">

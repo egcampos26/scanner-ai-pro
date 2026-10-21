@@ -206,7 +206,7 @@ RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
   }
 }`;
 
-    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.6-flash'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.6-flash'];
     let pageResponse: any = null;
     let lastError: any = null;
 
