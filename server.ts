@@ -207,9 +207,11 @@ RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
 }`;
 
     const modelsToTry = [
+      'gemini-flash-latest',
+      'gemini-3-flash-preview',
+      'gemini-3.1-flash-lite',
       'gemini-3.5-flash-lite',
       'gemini-flash-lite-latest',
-      'gemini-3.1-flash-lite',
       'gemini-3.6-flash',
       'gemini-3.5-flash'
     ];
@@ -413,9 +415,11 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
     // Structure the response format
     let extractionResponse;
     const modelsToTry = [
+      'gemini-flash-latest',
+      'gemini-3-flash-preview',
+      'gemini-3.1-flash-lite',
       'gemini-3.5-flash-lite',
       'gemini-flash-lite-latest',
-      'gemini-3.1-flash-lite',
       'gemini-3.6-flash',
       'gemini-3.5-flash'
     ];
@@ -489,8 +493,21 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
         } catch (err: any) {
           attempts++;
           lastError = err;
-          if (err.message && (err.message.includes('503') || err.message.includes('429') || err.message.includes('fetch failed')) && attempts < maxAttempts) {
-            console.warn(`[${model}] Erro temporário da API (503/429/fetch). Retentando em ${2000 * attempts}ms...`);
+          const isDailyQuota =
+            err?.status === 429 ||
+            err?.message?.includes('429') ||
+            err?.message?.includes('RESOURCE_EXHAUSTED') ||
+            err?.message?.includes('Quota exceeded') ||
+            err?.message?.includes('exceeded your current quota') ||
+            err?.message?.includes('limit: 20');
+
+          if (isDailyQuota) {
+            console.warn(`[${model}] Cota atingida (429/RESOURCE_EXHAUSTED). Pulando imediatamente para próximo modelo.`);
+            break;
+          }
+
+          if (err.message && (err.message.includes('503') || err.message.includes('fetch failed')) && attempts < maxAttempts) {
+            console.warn(`[${model}] Erro temporário da API (503/fetch). Retentando em ${2000 * attempts}ms...`);
             await new Promise((r) => setTimeout(r, 2000 * attempts));
           } else {
             console.warn(`[${model}] Erro definitivo (${err.message}). Avançando para o próximo modelo se disponível.`);
@@ -564,9 +581,11 @@ Retorne JSON no formato:
 
     let response;
     const modelsToTry = [
+      'gemini-flash-latest',
+      'gemini-3-flash-preview',
+      'gemini-3.1-flash-lite',
       'gemini-3.5-flash-lite',
       'gemini-flash-lite-latest',
-      'gemini-3.1-flash-lite',
       'gemini-3.6-flash',
       'gemini-3.5-flash'
     ];
@@ -592,7 +611,19 @@ Retorne JSON no formato:
         } catch (err: any) {
           refineAttempts++;
           lastError = err;
-          if (err.message && (err.message.includes('503') || err.message.includes('429') || err.message.includes('fetch failed')) && refineAttempts < maxAttempts) {
+          const isDailyQuota =
+            err?.status === 429 ||
+            err?.message?.includes('429') ||
+            err?.message?.includes('RESOURCE_EXHAUSTED') ||
+            err?.message?.includes('Quota exceeded') ||
+            err?.message?.includes('exceeded your current quota');
+
+          if (isDailyQuota) {
+            console.warn(`[Refine] ${model} cota atingida (429). Pulando imediatamente para próximo modelo.`);
+            break;
+          }
+
+          if (err.message && (err.message.includes('503') || err.message.includes('fetch failed')) && refineAttempts < maxAttempts) {
             await new Promise((r) => setTimeout(r, 1500 * refineAttempts));
           } else {
             break; // Move to next model
