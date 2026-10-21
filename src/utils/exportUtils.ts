@@ -451,7 +451,10 @@ export function downloadBlob(blob: Blob, fileName: string) {
 /**
  * Exports consolidated ERGON document to Microsoft Word (.docx)
  */
-export async function exportErgonToWordDocx(docData: ErgonConsolidatedDocument) {
+export async function exportErgonToWordDocx(
+  docData: ErgonConsolidatedDocument,
+  customFileName?: string
+) {
   const s = docData.servidor || {};
   const v = docData.vinculo || {};
   const paragraphs: (Paragraph | Table)[] = [];
@@ -642,6 +645,134 @@ export async function exportErgonToWordDocx(docData: ErgonConsolidatedDocument) 
   });
 
   const blob = await Packer.toBlob(doc);
-  const safeName = (s.nome || 'Servidor').replace(/[^a-zA-Z0-9]/g, '_');
-  downloadBlob(blob, `Ergon_PMSP_${safeName}_REPFICH2.docx`);
+  const finalFileName = customFileName || buildErgonFileName(docData, 'docx');
+  downloadBlob(blob, finalFileName);
+}
+
+/**
+ * Builds a standardized, collision-free filename with Servidor Nome, RF, and Vínculo
+ */
+export function buildErgonFileName(
+  documentData: ErgonConsolidatedDocument,
+  extension: 'pdf' | 'xlsx' | 'docx' = 'pdf'
+): string {
+  const rf = (documentData.servidor?.numero || '').trim();
+  const vinculo = (documentData.vinculo?.numero || '1').trim();
+  const nome = (documentData.servidor?.nome || 'Servidor').trim();
+
+  // Remove invalid filename characters on Windows/OS: / \ ? % * : | " < >
+  const cleanNome = nome.replace(/[/\\?%*:|"<>]/g, '').trim();
+  const cleanRf = rf.replace(/[/\\?%*:|"<>]/g, '').trim();
+  const cleanVinculo = vinculo.replace(/[/\\?%*:|"<>]/g, '').trim();
+
+  if (cleanRf) {
+    return `${cleanNome} - RF ${cleanRf} - Vinculo ${cleanVinculo} - REPFICH2.${extension}`;
+  }
+  return `${cleanNome} - Vinculo ${cleanVinculo} - REPFICH2.${extension}`;
+}
+
+/**
+ * Exports consolidated ERGON document to an Excel spreadsheet (.xlsx)
+ */
+export function exportErgonToExcel(
+  documentData: ErgonConsolidatedDocument,
+  customFileName?: string
+) {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Servidor & Vínculo
+  const servidorData = [
+    ['DADOS DO SERVIDOR PMSP'],
+    ['Número/RF', documentData.servidor?.numero || ''],
+    ['Nome', documentData.servidor?.nome || ''],
+    ['RG', documentData.servidor?.rg || ''],
+    ['SSP/UF', `${documentData.servidor?.ssp || ''}`],
+    ['CPF', documentData.servidor?.cpf || ''],
+    ['Nacionalidade', documentData.servidor?.nacionalidade || ''],
+    ['Estado Civil', documentData.servidor?.estadoCivil || ''],
+    ['Sexo', documentData.servidor?.sexo || ''],
+    ['Data de Nascimento', documentData.servidor?.dataNascimento || ''],
+    ['Nome do Pai', documentData.servidor?.pai || ''],
+    ['Nome da Mãe', documentData.servidor?.mae || ''],
+    [],
+    ['DADOS DO VÍNCULO'],
+    ['Número do Vínculo', documentData.vinculo?.numero || ''],
+    ['Nomeação', documentData.vinculo?.nomeacao || ''],
+    ['Posse', documentData.vinculo?.posse || ''],
+    ['Exercício', documentData.vinculo?.exercicio || ''],
+    ['Categoria', documentData.vinculo?.categoria || ''],
+    ['Regime Jurídico', documentData.vinculo?.regimeJuridico || ''],
+    ['Tipo de Vínculo', documentData.vinculo?.tipoVinculo || ''],
+    ['Matrícula 1', documentData.vinculo?.matricula1 || ''],
+    ['Matrícula 2', documentData.vinculo?.matricula2 || ''],
+  ];
+  const wsServidor = XLSX.utils.aoa_to_sheet(servidorData);
+  XLSX.utils.book_append_sheet(wb, wsServidor, 'Dados_Servidor');
+
+  // Sheet 2: Frequência Completa
+  const frequenciaRows: any[] = [];
+  documentData.pages.forEach((page) => {
+    (page.frequencias || []).forEach((f) => {
+      frequenciaRows.push({
+        Página: page.pageNumber,
+        'Data Início': f.periodoInicio,
+        'Data Fim': f.periodoFim,
+        Quantidade: f.quantidade || '',
+        Código: f.codigo || '',
+        Tipo: f.tipo || '',
+        Descrição: f.descricao || '',
+      });
+    });
+  });
+
+  if (frequenciaRows.length > 0) {
+    const wsFreq = XLSX.utils.json_to_sheet(frequenciaRows);
+    XLSX.utils.book_append_sheet(wb, wsFreq, 'Frequencia_Completa');
+  }
+
+  // Sheet 3: Licenças e Afastamentos
+  const licencaRows: any[] = [];
+  documentData.pages.forEach((page) => {
+    (page.licencas || []).forEach((l) => {
+      licencaRows.push({
+        Página: page.pageNumber,
+        'Data Início': l.periodoInicio,
+        'Data Fim': l.periodoFim,
+        Dias: l.dias || '',
+        Código: l.codigo || '',
+        Descrição: l.descricao || '',
+        Motivo: l.motivo || '',
+      });
+    });
+  });
+
+  if (licencaRows.length > 0) {
+    const wsLic = XLSX.utils.json_to_sheet(licencaRows);
+    XLSX.utils.book_append_sheet(wb, wsLic, 'Licencas_Afastamentos');
+  }
+
+  // Sheet 4: Mapa de Frequência
+  const mapaRows: any[] = [];
+  documentData.pages.forEach((page) => {
+    (page.mapaFrequencia || []).forEach((anoData) => {
+      (anoData.meses || []).forEach((mesData) => {
+        const rowObj: any = {
+          Ano: anoData.ano,
+          Mês: mesData.mes,
+        };
+        for (let d = 1; d <= 31; d++) {
+          rowObj[`Dia_${d}`] = mesData.dias[d.toString()] || mesData.dias[d as any] || '';
+        }
+        mapaRows.push(rowObj);
+      });
+    });
+  });
+
+  if (mapaRows.length > 0) {
+    const wsMapa = XLSX.utils.json_to_sheet(mapaRows);
+    XLSX.utils.book_append_sheet(wb, wsMapa, 'Mapa_Frequencia');
+  }
+
+  const fileName = customFileName || buildErgonFileName(documentData, 'xlsx');
+  XLSX.writeFile(wb, fileName);
 }

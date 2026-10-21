@@ -6,7 +6,10 @@ import { downloadBlob } from './exportUtils';
  * Generates an exact, native vector PDF file of the official ERGON PMSP REPFICH2 report
  * with 100% selectable text, tiny file size, and standard PDF/A compatible structures.
  */
-export async function generateNativeErgonPdf(documentData: ErgonConsolidatedDocument): Promise<void> {
+export async function generateNativeErgonPdf(
+  documentData: ErgonConsolidatedDocument,
+  customFileName?: string
+): Promise<Blob> {
   const pdfDoc = await PDFDocument.create();
 
   // Embed standard Courier & Helvetica fonts for crisp vector rendering
@@ -386,6 +389,20 @@ export async function generateNativeErgonPdf(documentData: ErgonConsolidatedDocu
   // Save PDF bytes and download directly
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-  const safeName = (documentData.servidor?.nome || 'Servidor').replace(/[^a-zA-Z0-9]/g, '_');
-  downloadBlob(blob, `Ergon_PMSP_${safeName}_REPFICH2_Nativo.pdf`);
+
+  let finalFileName = customFileName;
+  if (!finalFileName) {
+    const rf = (documentData.servidor?.numero || '').trim();
+    const vinculo = (documentData.vinculo?.numero || '1').trim();
+    const nome = (documentData.servidor?.nome || 'Servidor').trim();
+    const cleanNome = nome.replace(/[/\\?%*:|"<>]/g, '').trim();
+    const cleanRf = rf.replace(/[/\\?%*:|"<>]/g, '').trim();
+    const cleanVinculo = vinculo.replace(/[/\\?%*:|"<>]/g, '').trim();
+    finalFileName = cleanRf
+      ? `${cleanNome} - RF ${cleanRf} - Vinculo ${cleanVinculo} - REPFICH2.pdf`
+      : `${cleanNome} - Vinculo ${cleanVinculo} - REPFICH2.pdf`;
+  }
+
+  downloadBlob(blob, finalFileName);
+  return blob;
 }

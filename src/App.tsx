@@ -15,6 +15,7 @@ import { HelpModal } from './components/HelpModal';
 import { HistoryDrawer } from './components/HistoryDrawer';
 import { ErgonDocumentViewer } from './components/ErgonDocumentViewer';
 import { MultiPageProcessorModal } from './components/MultiPageProcessorModal';
+import { BatchPdfProcessorModal } from './components/BatchPdfProcessorModal';
 import {
   ScanFlow,
   ScanResultData,
@@ -50,9 +51,11 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [history, setHistory] = useState<ScannedDocumentHistory[]>([]);
 
-  // Multi-page PDF Ergon state
+  // Multi-page & Batch PDF Ergon state
   const [isMultiPageModalOpen, setIsMultiPageModalOpen] = useState<boolean>(false);
   const [multiPagePdfDataUrl, setMultiPagePdfDataUrl] = useState<string | null>(null);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState<boolean>(false);
   const [ergonDocument, setErgonDocument] = useState<ErgonConsolidatedDocument | null>(null);
 
   // Load history on start
@@ -90,21 +93,24 @@ export default function App() {
     localStorage.removeItem('docscan_history');
   };
 
-  const handleModeSelected = (mode: AppMode, file: File) => {
+  const handleModeSelected = (mode: AppMode, files: File[]) => {
     setAppMode(mode);
     setTargetFlow(mode === 'ocr' ? 'auto' : 'word_visual'); // Default flow based on mode
+
+    // Se selecionou Reconstrutor de PDF, abre o processador em lote (1 ou múltiplos arquivos)
+    if (mode === 'reconstruct_pdf') {
+      setBatchFiles(files);
+      setIsBatchModalOpen(true);
+      return;
+    }
+
+    const file = files[0];
+    if (!file) return;
     
     const reader = new FileReader();
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
       if (!dataUrl) return;
-
-      // SOMENTE abre o Reconstrutor de PDF se o usuário clicou especificamente no botão 'reconstruct_pdf'
-      if (mode === 'reconstruct_pdf') {
-        setMultiPagePdfDataUrl(dataUrl);
-        setIsMultiPageModalOpen(true);
-        return;
-      }
 
       setOriginalImage(dataUrl);
       setErrorMessage(null);
@@ -115,7 +121,14 @@ export default function App() {
 
   const handleMultiPageComplete = (consolidatedDoc: ErgonConsolidatedDocument) => {
     setIsMultiPageModalOpen(false);
+    setIsBatchModalOpen(false);
     setErgonDocument(consolidatedDoc);
+    setStep('ergon_result');
+  };
+
+  const handleViewBatchDocument = (doc: ErgonConsolidatedDocument) => {
+    setIsBatchModalOpen(false);
+    setErgonDocument(doc);
     setStep('ergon_result');
   };
 
@@ -449,6 +462,14 @@ export default function App() {
         pdfDataUrl={multiPagePdfDataUrl || ''}
         onClose={() => setIsMultiPageModalOpen(false)}
         onComplete={handleMultiPageComplete}
+      />
+
+      {/* Batch PDF Ergon Processor Modal (Fila em Lote com Download Automático) */}
+      <BatchPdfProcessorModal
+        isOpen={isBatchModalOpen}
+        files={batchFiles}
+        onClose={() => setIsBatchModalOpen(false)}
+        onViewDocument={handleViewBatchDocument}
       />
 
       {/* Help Modal */}

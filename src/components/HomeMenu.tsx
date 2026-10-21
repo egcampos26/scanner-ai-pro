@@ -3,7 +3,7 @@ import { Camera, FileText, Upload, Layers, Sparkles } from 'lucide-react';
 import { AppMode } from '../types';
 
 interface HomeMenuProps {
-  onSelectMode: (mode: AppMode, file: File) => void;
+  onSelectMode: (mode: AppMode, files: File[]) => void;
   onOpenCamera: () => void;
 }
 
@@ -12,9 +12,9 @@ export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode, onOpenCamera }
   const selectedModeRef = useRef<AppMode>('scanner');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onSelectMode(selectedModeRef.current, file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      onSelectMode(selectedModeRef.current, files);
     }
     // Reset input so the same file can be selected again if needed
     if (fileInputRef.current) {
@@ -24,7 +24,10 @@ export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode, onOpenCamera }
 
   const handleModeClick = (mode: AppMode) => {
     selectedModeRef.current = mode;
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.multiple = mode === 'reconstruct_pdf';
+      fileInputRef.current.click();
+    }
   };
 
   return (
@@ -141,19 +144,19 @@ export const HomeMenu: React.FC<HomeMenuProps> = ({ onSelectMode, onOpenCamera }
           
           <div className="space-y-2 relative z-10">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-300 font-bold uppercase mb-1">
-              <Sparkles className="w-3 h-3 text-amber-400" /> Multi-Páginas
+              <Sparkles className="w-3 h-3 text-amber-400" /> Multi-Páginas & Lote
             </div>
             <h2 className="text-xl font-bold text-white tracking-wide">
               Reconstrutor de PDF
             </h2>
             <p className="text-xs text-white/50 leading-relaxed max-w-[220px] mx-auto">
-              Reconstrua relatórios do ERGON/Windows com layout idêntico, texto 100% pesquisável e exportação para Excel.
+              Reconstrua relatórios do ERGON com layout idêntico. Selecione 1 ou vários PDFs para fila em lote e download automático.
             </p>
           </div>
 
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 mt-2 bg-amber-500/10 text-amber-400 font-mono text-xs font-bold rounded-lg border border-amber-500/30 uppercase tracking-wider group-hover:bg-amber-500 group-hover:text-black transition-colors">
             <Upload className="w-3.5 h-3.5" />
-            PDF do Windows
+            PDFs do Windows (1 ou Vários)
           </div>
         </button>
 
