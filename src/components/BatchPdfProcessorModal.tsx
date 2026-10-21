@@ -193,11 +193,19 @@ export const BatchPdfProcessorModal: React.FC<BatchPdfProcessorModalProps> = ({
                 pageSuccess = true;
                 extractedPages.push(pageData!);
 
-                if (pageData?.servidor && Object.keys(pageData.servidor).length > 0) {
-                  servidorConsolidado = { ...servidorConsolidado, ...pageData.servidor };
+                if (pageData?.servidor) {
+                  for (const [k, v] of Object.entries(pageData.servidor)) {
+                    if (v && typeof v === 'string' && v.trim() !== '') {
+                      (servidorConsolidado as any)[k] = v.trim();
+                    }
+                  }
                 }
-                if (pageData?.vinculo && Object.keys(pageData.vinculo).length > 0) {
-                  vinculoConsolidado = { ...vinculoConsolidado, ...pageData.vinculo };
+                if (pageData?.vinculo) {
+                  for (const [k, v] of Object.entries(pageData.vinculo)) {
+                    if (v && typeof v === 'string' && v.trim() !== '') {
+                      (vinculoConsolidado as any)[k] = v.trim();
+                    }
+                  }
                 }
                 if (pageData?.frequencias && pageData.frequencias.length > 0) {
                   todasFrequencias.push(...pageData.frequencias);

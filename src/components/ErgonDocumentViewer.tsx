@@ -181,46 +181,46 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
               <div className="space-y-0.5">
                 <div className="flex flex-wrap gap-x-6">
                   <span>
-                    <strong>Número</strong> &nbsp;{documentData.servidor.numero || '8032548'}
+                    <strong>Número</strong> &nbsp;{documentData.servidor.numero || ''}
                   </span>
                   <span>
                     <strong>Nome</strong> &nbsp;
-                    <span className="font-bold">{documentData.servidor.nome || 'ALESSANDRA SCARPELLE'}</span>
+                    <span className="font-bold">{documentData.servidor.nome || ''}</span>
                   </span>
                 </div>
 
                 <div className="flex flex-wrap gap-x-6">
                   <span>
-                    <strong>Identificação RG</strong> &nbsp;{documentData.servidor.rg || '278395958'}
+                    <strong>Identificação RG</strong> &nbsp;{documentData.servidor.rg || ''}
                   </span>
                   <span>
-                    <strong>SSP</strong> &nbsp;{documentData.servidor.ssp || 'SP'}
+                    <strong>SSP</strong> &nbsp;{documentData.servidor.ssp || ''}
                   </span>
                   <span>
-                    <strong>CPF</strong> &nbsp;{documentData.servidor.cpf || '24860827864'}
+                    <strong>CPF</strong> &nbsp;{documentData.servidor.cpf || ''}
                   </span>
                   <span>
-                    <strong>Nacionalidade</strong> &nbsp;{documentData.servidor.nacionalidade || '10'}
+                    <strong>Nacionalidade</strong> &nbsp;{documentData.servidor.nacionalidade || ''}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap gap-x-6">
                   <span>
-                    <strong>Estado Civil</strong> &nbsp;{documentData.servidor.estadoCivil || 'SOLTEIRO'}
+                    <strong>Estado Civil</strong> &nbsp;{documentData.servidor.estadoCivil || ''}
                   </span>
                   <span>
-                    <strong>Sexo</strong> &nbsp;{documentData.servidor.sexo || 'F'}
+                    <strong>Sexo</strong> &nbsp;{documentData.servidor.sexo || ''}
                   </span>
                   <span>
-                    <strong>Data de nascimento</strong> &nbsp;{documentData.servidor.dataNascimento || '12/08/1976'}
+                    <strong>Data de nascimento</strong> &nbsp;{documentData.servidor.dataNascimento || ''}
                   </span>
                 </div>
 
                 <div>
-                  <strong>Pai</strong> &nbsp;{documentData.servidor.pai || 'RAMON SALVADOR SCARPELLE'}
+                  <strong>Pai</strong> &nbsp;{documentData.servidor.pai || ''}
                 </div>
                 <div>
-                  <strong>Mãe</strong> &nbsp;{documentData.servidor.mae || 'ELISABETE LOBATO SCARPELLE'}
+                  <strong>Mãe</strong> &nbsp;{documentData.servidor.mae || ''}
                 </div>
               </div>
 
@@ -233,25 +233,25 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
 
                 <div className="flex flex-wrap gap-x-6">
                   <span>
-                    <strong>Número</strong> &nbsp;{documentData.vinculo.numero || '1'}
+                    <strong>Número</strong> &nbsp;{documentData.vinculo.numero || ''}
                   </span>
                   <span>
-                    <strong>Nomeação</strong> &nbsp;{documentData.vinculo.nomeacao || '27/01/2012'}
+                    <strong>Nomeação</strong> &nbsp;{documentData.vinculo.nomeacao || ''}
                   </span>
                   <span>
-                    <strong>Posse</strong> &nbsp;{documentData.vinculo.posse || '31/01/2012'}
+                    <strong>Posse</strong> &nbsp;{documentData.vinculo.posse || ''}
                   </span>
                   <span>
-                    <strong>Exercício</strong> &nbsp;{documentData.vinculo.exercicio || '01/02/2012'}
+                    <strong>Exercício</strong> &nbsp;{documentData.vinculo.exercicio || ''}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap gap-x-6">
                   <span>
-                    <strong>Categoria</strong> &nbsp;{documentData.vinculo.categoria || 'QPE LEI 14660/07'}
+                    <strong>Categoria</strong> &nbsp;{documentData.vinculo.categoria || ''}
                   </span>
                   <span>
-                    <strong>Regime jurídico</strong> &nbsp;{documentData.vinculo.regimeJuridico || 'ESTATUTARIO'}
+                    <strong>Regime jurídico</strong> &nbsp;{documentData.vinculo.regimeJuridico || ''}
                   </span>
                   <span>
                     <strong>Vínculo Anterior</strong> &nbsp;{documentData.vinculo.vinculoAnterior || ''}
@@ -263,7 +263,7 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
 
                 <div className="flex flex-wrap gap-x-6">
                   <span>
-                    <strong>Tipo de Vínculo</strong> &nbsp;{documentData.vinculo.tipoVinculo || 'EFETIVO'}
+                    <strong>Tipo de Vínculo</strong> &nbsp;{documentData.vinculo.tipoVinculo || ''}
                   </span>
                   <span>
                     <strong>Matrícula1</strong> &nbsp;{documentData.vinculo.matricula1 || ''}
@@ -578,9 +578,9 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
           <div>
             <div className="text-[10px] uppercase font-mono text-white/40">Servidor Ativo</div>
             <div className="font-bold text-white text-xs truncate max-w-[150px]">
-              {documentData.servidor?.nome || 'Alessandra Scarpelle'}
+              {documentData.servidor?.nome || 'Servidor'}
             </div>
-            <div className="text-[10px] text-white/50 font-mono">RF: {documentData.servidor?.numero || '8032548'}</div>
+            <div className="text-[10px] text-white/50 font-mono">RF: {documentData.servidor?.numero || '-'}</div>
           </div>
         </div>
 

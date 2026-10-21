@@ -138,7 +138,7 @@ export async function generateNativeErgonPdf(
       const v = documentData.vinculo || {};
 
       // Servidor lines (6.5pt com entrelinha de 8.5pt)
-      page.drawText(`Número ${s.numero || '8032548'}   Nome ${s.nome || 'ALESSANDRA SCARPELLE'}`, {
+      page.drawText(`Número ${s.numero || ''}   Nome ${s.nome || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -147,18 +147,18 @@ export async function generateNativeErgonPdf(
       currentY -= 8.5;
 
       page.drawText(
-        `Identificação RG ${s.rg || '278395958'}   SSP ${s.ssp || 'SP'}   CPF ${s.cpf || '24860827864'}   Nacionalidade ${s.nacionalidade || '10'}`,
+        `Identificação RG ${s.rg || ''}   SSP ${s.ssp || ''}   CPF ${s.cpf || ''}   Nacionalidade ${s.nacionalidade || ''}`,
         { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
       currentY -= 8.5;
 
       page.drawText(
-        `Estado Civil ${s.estadoCivil || 'SOLTEIRO'}   Sexo ${s.sexo || 'F'}   Data de nascimento ${s.dataNascimento || '12/08/1976'}`,
+        `Estado Civil ${s.estadoCivil || ''}   Sexo ${s.sexo || ''}   Data de nascimento ${s.dataNascimento || ''}`,
         { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
       currentY -= 8.5;
 
-      page.drawText(`Pai ${s.pai || 'RAMON SALVADOR SCARPELLE'}`, {
+      page.drawText(`Pai ${s.pai || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -166,7 +166,7 @@ export async function generateNativeErgonPdf(
       });
       currentY -= 8.5;
 
-      page.drawText(`Mãe ${s.mae || 'ELISABETE LOBATO SCARPELLE'}`, {
+      page.drawText(`Mãe ${s.mae || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -187,18 +187,18 @@ export async function generateNativeErgonPdf(
       currentY -= 8.5;
 
       page.drawText(
-        `Número ${v.numero || '1'}   Nomeação ${v.nomeacao || '27/01/2012'}   Posse ${v.posse || '31/01/2012'}   Exercício ${v.exercicio || '01/02/2012'}`,
+        `Número ${v.numero || ''}   Nomeação ${v.nomeacao || ''}   Posse ${v.posse || ''}   Exercício ${v.exercicio || ''}`,
         { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
       currentY -= 8.5;
 
       page.drawText(
-        `Categoria ${v.categoria || 'QPE LEI 14660/07'}   Regime jurídico ${v.regimeJuridico || 'ESTATUTARIO'}   Vínculo Anterior   Vínculo Posterior`,
+        `Categoria ${v.categoria || ''}   Regime jurídico ${v.regimeJuridico || ''}   Vínculo Anterior ${v.vinculoAnterior || ''}   Vínculo Posterior ${v.vinculoPosterior || ''}`,
         { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
       currentY -= 8.5;
 
-      page.drawText(`Tipo de Vínculo ${v.tipoVinculo || 'EFETIVO'}   Matrícula1   Matrícula2`, {
+      page.drawText(`Tipo de Vínculo ${v.tipoVinculo || ''}   Matrícula1 ${v.matricula1 || ''}   Matrícula2 ${v.matricula2 || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -206,7 +206,7 @@ export async function generateNativeErgonPdf(
       });
       currentY -= 8.5;
 
-      page.drawText(`Aposentadoria   Tipo Aposent.   Vacância   Forma Vacância`, {
+      page.drawText(`Aposentadoria ${v.aposentadoria || ''}   Tipo Aposent. ${v.tipoAposent || ''}   Vacância ${v.vacancia || ''}   Forma Vacância ${v.formaVacancia || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -214,7 +214,7 @@ export async function generateNativeErgonPdf(
       });
       currentY -= 8.5;
 
-      page.drawText(`Motivo`, { x: marginX, y: currentY, size: 6.5, font: fontRegular });
+      page.drawText(`Motivo ${v.motivo || ''}`, { x: marginX, y: currentY, size: 6.5, font: fontRegular });
       currentY -= 7.5;
 
       // Divider line
