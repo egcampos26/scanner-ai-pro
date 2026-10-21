@@ -102,7 +102,8 @@ DIRETRIZES ESPECÍFICAS PARA CADA SEÇÃO:
 2. DADOS DO VÍNCULO (comum na Página 1):
    - Número do vínculo, Data de Nomeação, Data de Posse, Data de Exercício, Categoria (ex: QPE LEI 14660/07), Regime Jurídico (ex: ESTATUTARIO), Tipo de Vínculo, Matrícula1, Matrícula2, Aposentadoria, Vacância.
 
-3. TABELA DE FREQUÊNCIA (comum nas Páginas 1 a 11):
+3. TABELA DE FREQUÊNCIA (ATENÇÃO: EXISTE NA PÁGINA 1 E CONTINUA ATÉ A PÁGINA 11):
+   - ATENÇÃO CRÍTICA PÁGINA 1: Na Página 1, logo abaixo do bloco 'Vínculo', HÁ UMA TABELA DE FREQUÊNCIA com 10 ou mais linhas! Você OBRIGATORIAMENTE deve extrair todas as linhas de frequência presentes no final da Página 1 para o array 'frequencias'!
    - Extraia TODAS as linhas de frequência sem exceção.
    - Colunas:
      * periodoInicio (DD/MM/AAAA)
@@ -212,7 +213,8 @@ RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
     for (const model of modelsToTry) {
       if (pageResponse) break;
       let attempts = 0;
-      while (attempts < 2) {
+      const maxAttempts = 3;
+      while (attempts < maxAttempts) {
         try {
           pageResponse = await ai.models.generateContent({
             model: model,
@@ -241,7 +243,16 @@ RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
         } catch (err: any) {
           attempts++;
           lastError = err;
-          if (attempts < 2) await new Promise((r) => setTimeout(r, 1500));
+          const isRateLimit =
+            err?.message?.includes('429') ||
+            err?.message?.includes('quota') ||
+            err?.message?.includes('RESOURCE_EXHAUSTED') ||
+            err?.message?.includes('fetch failed');
+          const waitTime = isRateLimit ? 4000 * attempts : 2000;
+          console.warn(`[Page ${pageNumber}] ${model} tentativa ${attempts} falhou (${err.message}). Aguardando ${waitTime}ms...`);
+          if (attempts < maxAttempts) {
+            await new Promise((r) => setTimeout(r, waitTime));
+          }
         }
       }
     }

@@ -127,49 +127,49 @@ export async function generateNativeErgonPdf(documentData: ErgonConsolidatedDocu
       color: rgb(0, 0, 0),
       thickness: 1,
     });
-    currentY -= 14;
+    currentY -= 12;
 
-    // 2. PAGE 1 ONLY: Servidor & Vínculo
+    // 2. PAGE 1 ONLY: Servidor & Vínculo (Tipografia Oficial Compacta 6.5pt)
     if (pageData.pageNumber === 1) {
-      const s = documentData.servidor;
-      const v = documentData.vinculo;
+      const s = documentData.servidor || {};
+      const v = documentData.vinculo || {};
 
-      // Servidor lines
+      // Servidor lines (6.5pt com entrelinha de 8.5pt)
       page.drawText(`Número ${s.numero || '8032548'}   Nome ${s.nome || 'ALESSANDRA SCARPELLE'}`, {
         x: marginX,
         y: currentY,
-        size: 8,
+        size: 6.5,
         font: fontRegular,
       });
-      currentY -= 11;
+      currentY -= 8.5;
 
       page.drawText(
         `Identificação RG ${s.rg || '278395958'}   SSP ${s.ssp || 'SP'}   CPF ${s.cpf || '24860827864'}   Nacionalidade ${s.nacionalidade || '10'}`,
-        { x: marginX, y: currentY, size: 8, font: fontRegular }
+        { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
-      currentY -= 11;
+      currentY -= 8.5;
 
       page.drawText(
         `Estado Civil ${s.estadoCivil || 'SOLTEIRO'}   Sexo ${s.sexo || 'F'}   Data de nascimento ${s.dataNascimento || '12/08/1976'}`,
-        { x: marginX, y: currentY, size: 8, font: fontRegular }
+        { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
-      currentY -= 11;
+      currentY -= 8.5;
 
       page.drawText(`Pai ${s.pai || 'RAMON SALVADOR SCARPELLE'}`, {
         x: marginX,
         y: currentY,
-        size: 8,
+        size: 6.5,
         font: fontRegular,
       });
-      currentY -= 11;
+      currentY -= 8.5;
 
       page.drawText(`Mãe ${s.mae || 'ELISABETE LOBATO SCARPELLE'}`, {
         x: marginX,
         y: currentY,
-        size: 8,
+        size: 6.5,
         font: fontRegular,
       });
-      currentY -= 10;
+      currentY -= 7.5;
 
       // Divider line
       page.drawLine({
@@ -177,42 +177,42 @@ export async function generateNativeErgonPdf(documentData: ErgonConsolidatedDocu
         end: { x: pageWidth - marginX, y: currentY },
         thickness: 0.5,
       });
-      currentY -= 12;
+      currentY -= 8.5;
 
       // Vínculo title
-      page.drawText('Vínculo', { x: marginX, y: currentY, size: 8.5, font: fontBold });
-      currentY -= 11;
+      page.drawText('Vínculo', { x: marginX, y: currentY, size: 7.5, font: fontBold });
+      currentY -= 8.5;
 
       page.drawText(
         `Número ${v.numero || '1'}   Nomeação ${v.nomeacao || '27/01/2012'}   Posse ${v.posse || '31/01/2012'}   Exercício ${v.exercicio || '01/02/2012'}`,
-        { x: marginX, y: currentY, size: 8, font: fontRegular }
+        { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
-      currentY -= 11;
+      currentY -= 8.5;
 
       page.drawText(
         `Categoria ${v.categoria || 'QPE LEI 14660/07'}   Regime jurídico ${v.regimeJuridico || 'ESTATUTARIO'}   Vínculo Anterior   Vínculo Posterior`,
-        { x: marginX, y: currentY, size: 8, font: fontRegular }
+        { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
-      currentY -= 11;
+      currentY -= 8.5;
 
       page.drawText(`Tipo de Vínculo ${v.tipoVinculo || 'EFETIVO'}   Matrícula1   Matrícula2`, {
         x: marginX,
         y: currentY,
-        size: 8,
+        size: 6.5,
         font: fontRegular,
       });
-      currentY -= 11;
+      currentY -= 8.5;
 
       page.drawText(`Aposentadoria   Tipo Aposent.   Vacância   Forma Vacância`, {
         x: marginX,
         y: currentY,
-        size: 8,
+        size: 6.5,
         font: fontRegular,
       });
-      currentY -= 11;
+      currentY -= 8.5;
 
-      page.drawText(`Motivo`, { x: marginX, y: currentY, size: 8, font: fontRegular });
-      currentY -= 10;
+      page.drawText(`Motivo`, { x: marginX, y: currentY, size: 6.5, font: fontRegular });
+      currentY -= 7.5;
 
       // Divider line
       page.drawLine({
@@ -220,38 +220,38 @@ export async function generateNativeErgonPdf(documentData: ErgonConsolidatedDocu
         end: { x: pageWidth - marginX, y: currentY },
         thickness: 0.5,
       });
-      currentY -= 12;
+      currentY -= 9;
     }
 
     // 3. TABELA DE FREQUÊNCIA
     if (pageData.frequencias && pageData.frequencias.length > 0) {
-      page.drawText('Frequência', { x: marginX, y: currentY, size: 8.5, font: fontBold });
-      currentY -= 10;
+      page.drawText('Frequência', { x: marginX, y: currentY, size: 8, font: fontBold });
+      currentY -= 9;
 
       page.drawText('Período                    Quantidade  Código  Tipo        Descrição', {
         x: marginX,
         y: currentY,
-        size: 7.5,
+        size: 7,
         font: fontBold,
       });
-      currentY -= 10;
+      currentY -= 9;
 
       for (const f of pageData.frequencias) {
-        if (currentY < 60) break; // Keep room for footer
+        if (currentY < 55) break; // Keep room for footer
 
-        const pStr = `${f.periodoInicio.padEnd(10, ' ')}  ${f.periodoFim.padEnd(10, ' ')}`;
+        const pStr = `${(f.periodoInicio || '').padEnd(10, ' ')}  ${(f.periodoFim || '').padEnd(10, ' ')}`;
         const qStr = String(f.quantidade || '').padStart(5, ' ');
         const cStr = String(f.codigo || '').padStart(5, ' ');
         const tStr = String(f.tipo || '').padEnd(10, ' ');
-        const dStr = String(f.descricao || '').slice(0, 48);
+        const dStr = String(f.descricao || '').slice(0, 52);
 
         page.drawText(`${pStr}    ${qStr}   ${cStr}   ${tStr}  ${dStr}`, {
           x: marginX,
           y: currentY,
-          size: 7.5,
+          size: 7,
           font: fontRegular,
         });
-        currentY -= 9.5;
+        currentY -= 8.5;
       }
     }
 
@@ -288,39 +288,48 @@ export async function generateNativeErgonPdf(documentData: ErgonConsolidatedDocu
       }
     }
 
-    // 5. MAPA DE FREQUÊNCIA
+    // 5. MAPA DE FREQUÊNCIA (Grade Milimétrica de 31 colunas x 11pt)
     if (pageData.mapaFrequencia && pageData.mapaFrequencia.length > 0) {
-      page.drawText('Mapa de Freqüência', { x: marginX, y: currentY, size: 8.5, font: fontBold });
-      currentY -= 11;
+      page.drawText('Mapa de Freqüência', { x: marginX, y: currentY, size: 8, font: fontBold });
+      currentY -= 10;
 
       for (const anoData of pageData.mapaFrequencia) {
         if (currentY < 75) break;
 
-        page.drawText(`Ano: ${anoData.ano}`, { x: marginX, y: currentY, size: 8, font: fontBold });
-        currentY -= 9;
+        page.drawText(`Ano: ${anoData.ano}`, { x: marginX, y: currentY, size: 7.5, font: fontBold });
+        currentY -= 8.5;
 
-        // Days header 1..31
-        let dayHeader = 'Mês  ';
+        // Cabeçalho dos 31 dias com exatamente 11pt por coluna
+        page.drawText('Mês', { x: marginX, y: currentY, size: 5.5, font: fontBold });
         for (let d = 1; d <= 31; d++) {
-          dayHeader += `${String(d).padStart(2, ' ')} `;
+          const colX = marginX + 28 + (d - 1) * 11;
+          page.drawText(String(d), { x: colX, y: currentY, size: 5, font: fontBold });
         }
-        page.drawText(dayHeader, { x: marginX, y: currentY, size: 6.5, font: fontBold });
-        currentY -= 8;
+        currentY -= 7.5;
 
+        // Linhas de cada mês com alinhamento milimétrico por coluna
         for (const m of anoData.meses) {
           if (currentY < 55) break;
 
-          let monthLine = `${m.mes.padEnd(4, ' ')} `;
+          page.drawText(m.mes, { x: marginX, y: currentY, size: 5.5, font: fontBold });
           for (let d = 1; d <= 31; d++) {
-            const val = m.dias[d.toString()] || m.dias[d as any] || '..';
-            const shortVal = val === '...' ? '..' : val.slice(0, 2);
-            monthLine += `${shortVal.padStart(2, ' ')} `;
+            const colX = marginX + 28 + (d - 1) * 11;
+            let val = m.dias[d.toString()] || m.dias[d as any] || '...';
+            if (!val || val.trim() === '') val = '...';
+
+            const isCode = val !== '...';
+            page.drawText(val.slice(0, 3), {
+              x: colX,
+              y: currentY,
+              size: 4.8,
+              font: isCode ? fontBold : fontRegular,
+              color: isCode ? rgb(0, 0, 0) : rgb(0.4, 0.4, 0.4),
+            });
           }
 
-          page.drawText(monthLine, { x: marginX, y: currentY, size: 6.5, font: fontRegular });
-          currentY -= 7.5;
+          currentY -= 6.8;
         }
-        currentY -= 5;
+        currentY -= 6;
       }
     }
 

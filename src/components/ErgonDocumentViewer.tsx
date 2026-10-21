@@ -270,11 +270,11 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
             </div>
           </div>
 
-          {/* PAGE 1 ONLY: Servidor & Vínculo */}
+          {/* PAGE 1 ONLY: Servidor & Vínculo (Compacto Oficial 6.5pt) */}
           {isFirstPage && (
-            <div className="space-y-3 mb-4">
+            <div className="space-y-1 mb-2.5 text-[6.5pt] leading-[8.5pt]">
               {/* Servidor Info */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <div className="flex flex-wrap gap-x-6">
                   <span>
                     <strong>Número</strong> &nbsp;{documentData.servidor.numero || '8032548'}
@@ -321,11 +321,11 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
               </div>
 
               {/* Black Line */}
-              <hr className="border-t border-black my-2" />
+              <hr className="border-t border-black my-1" />
 
               {/* Vínculo */}
-              <div className="space-y-1">
-                <div className="font-bold underline text-[12px] mb-1">Vínculo</div>
+              <div className="space-y-0.5">
+                <div className="font-bold underline text-[7.5pt] mb-0.5">Vínculo</div>
 
                 <div className="flex flex-wrap gap-x-6">
                   <span>
@@ -390,7 +390,7 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
               </div>
 
               {/* Black Line */}
-              <hr className="border-t border-black my-2" />
+              <hr className="border-t border-black my-1" />
             </div>
           )}
 
@@ -483,13 +483,13 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
               {page.mapaFrequencia.map((anoData, aIdx) => (
                 <div key={aIdx} className="mb-4">
                   <div className="font-bold text-[11px] mb-1">{anoData.ano}</div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[9px] text-center border border-black border-collapse">
+                  <div className="overflow-x-auto pb-1">
+                    <table className="table-fixed border border-black border-collapse text-center">
                       <thead>
                         <tr className="bg-gray-100 border-b border-black">
-                          <th className="py-0.5 px-1 border-r border-black w-8">Mês</th>
+                          <th className="py-0.5 px-0.5 border-r border-black w-[34px] min-w-[34px] text-[7pt]">Mês</th>
                           {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                            <th key={d} className="py-0.5 px-0.5 border-r border-gray-300 last:border-none w-5">
+                            <th key={d} className="py-0.5 px-0 border-r border-gray-300 last:border-none w-[11pt] min-w-[11pt] max-w-[11pt] text-[5.5pt] font-mono">
                               {d}
                             </th>
                           ))}
@@ -498,14 +498,14 @@ export const ErgonDocumentViewer: React.FC<ErgonDocumentViewerProps> = ({
                       <tbody>
                         {anoData.meses.map((m, mIdx) => (
                           <tr key={mIdx} className="border-b border-gray-200 hover:bg-yellow-50/50">
-                            <td className="font-bold py-0.5 px-1 border-r border-black bg-gray-50 text-left">{m.mes}</td>
+                            <td className="font-bold py-0.5 px-0.5 border-r border-black bg-gray-50 text-left text-[6.5pt] w-[34px] min-w-[34px]">{m.mes}</td>
                             {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => {
                               const val = m.dias[d.toString()] || m.dias[d as any] || '...';
                               const hasCode = val && val !== '...';
                               return (
                                 <td
                                   key={d}
-                                  className={`py-0.5 px-0.5 border-r border-gray-200 last:border-none font-mono ${
+                                  className={`py-0.5 px-0 border-r border-gray-200 last:border-none font-mono text-[5.5pt] w-[11pt] min-w-[11pt] max-w-[11pt] overflow-hidden whitespace-nowrap ${
                                     hasCode ? 'font-bold text-blue-700 bg-blue-50/70' : 'text-gray-400'
                                   }`}
                                 >

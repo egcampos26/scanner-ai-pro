@@ -84,6 +84,13 @@ export const MultiPageProcessorModal: React.FC<MultiPageProcessorModalProps> = (
         for (let i = 0; i < pages.length; i++) {
           if (isCancelledRef.current) return;
 
+          // Ajuste 1: Intervalo seguro de 3.5 segundos entre cada página para garantir zero rate-limit (429)
+          if (i > 0) {
+            setErrorMessage(`Intervalo de segurança anti-cota (3.5s) antes da Página ${pages[i].pageNumber}...`);
+            await new Promise((r) => setTimeout(r, 3500));
+            setErrorMessage(null);
+          }
+
           const p = pages[i];
           setCurrentPageIndex(i + 1);
 
@@ -91,7 +98,8 @@ export const MultiPageProcessorModal: React.FC<MultiPageProcessorModalProps> = (
           let retryCount = 0;
           let pageSuccess = false;
 
-          while (!pageSuccess && retryCount < 2) {
+          // Retenta até 6 vezes com espera progressiva - NUNCA gera página em branco falsa
+          while (!pageSuccess && retryCount < 6) {
             try {
               const pageRes = await fetch('/api/pdf/extract-page-data', {
                 method: 'POST',
@@ -131,21 +139,16 @@ export const MultiPageProcessorModal: React.FC<MultiPageProcessorModalProps> = (
               }
 
               setCompletedPages((prev) => [...prev, p.pageNumber]);
+              setErrorMessage(null);
             } catch (err: any) {
               retryCount++;
-              if (retryCount >= 2) {
-                console.warn(`Página ${p.pageNumber} falhou após 2 tentativas:`, err);
-                // Create a fallback empty page record so the document stays continuous
-                extractedPages.push({
-                  pageNumber: p.pageNumber,
-                  totalPages: count,
-                  frequencias: [],
-                  licencas: [],
-                });
-                setCompletedPages((prev) => [...prev, p.pageNumber]);
-                pageSuccess = true;
+              if (retryCount >= 6) {
+                console.error(`Página ${p.pageNumber} falhou após 6 tentativas:`, err);
+                throw new Error(`Falha definitiva ao ler a Página ${p.pageNumber}: ${err.message}. Verifique sua conexão com a API e tente novamente.`);
               } else {
-                await new Promise((r) => setTimeout(r, 1500));
+                const waitMs = 4000 * retryCount;
+                setErrorMessage(`Página ${p.pageNumber}: cota da IA em espera. Retentando em ${waitMs / 1000}s (Tentativa ${retryCount}/6)...`);
+                await new Promise((r) => setTimeout(r, waitMs));
               }
             }
           }

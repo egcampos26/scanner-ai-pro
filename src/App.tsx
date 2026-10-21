@@ -99,23 +99,11 @@ export default function App() {
       const dataUrl = event.target?.result as string;
       if (!dataUrl) return;
 
-      // If PDF file, inspect if it's multi-page or if user explicitly chose reconstruct_pdf
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-        try {
-          const inspRes = await fetch('/api/pdf/inspect', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pdfBase64: dataUrl }),
-          });
-          const inspData = await inspRes.json();
-          if (inspData.success && (inspData.info?.pageCount > 1 || mode === 'reconstruct_pdf')) {
-            setMultiPagePdfDataUrl(dataUrl);
-            setIsMultiPageModalOpen(true);
-            return;
-          }
-        } catch (e) {
-          console.warn('PDF inspection failed, proceeding to standard studio flow', e);
-        }
+      // SOMENTE abre o Reconstrutor de PDF se o usuário clicou especificamente no botão 'reconstruct_pdf'
+      if (mode === 'reconstruct_pdf') {
+        setMultiPagePdfDataUrl(dataUrl);
+        setIsMultiPageModalOpen(true);
+        return;
       }
 
       setOriginalImage(dataUrl);
