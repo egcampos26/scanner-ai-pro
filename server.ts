@@ -206,7 +206,7 @@ RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
   }
 }`;
 
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash'];
     let pageResponse: any = null;
     let lastError: any = null;
 
@@ -243,12 +243,21 @@ RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
         } catch (err: any) {
           attempts++;
           lastError = err;
+          const isNotFound =
+            err?.status === 404 ||
+            err?.message?.includes('404') ||
+            err?.message?.includes('NOT_FOUND') ||
+            err?.message?.includes('no longer available');
+          if (isNotFound) {
+            console.warn(`[Page ${pageNumber}] ${model} não disponível (404). Pulando para próximo modelo.`);
+            break;
+          }
           const isRateLimit =
             err?.message?.includes('429') ||
             err?.message?.includes('quota') ||
             err?.message?.includes('RESOURCE_EXHAUSTED') ||
             err?.message?.includes('fetch failed');
-          const waitTime = isRateLimit ? 4000 * attempts : 2000;
+          const waitTime = isRateLimit ? 3000 * attempts : 1500;
           console.warn(`[Page ${pageNumber}] ${model} tentativa ${attempts} falhou (${err.message}). Aguardando ${waitTime}ms...`);
           if (attempts < maxAttempts) {
             await new Promise((r) => setTimeout(r, waitTime));
