@@ -206,16 +206,23 @@ RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
   }
 }`;
 
-    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash'];
+    const modelsToTry = [
+      'gemini-3.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-3.1-flash-lite',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash'
+    ];
     let pageResponse: any = null;
     let lastError: any = null;
 
     for (const model of modelsToTry) {
       if (pageResponse) break;
       let attempts = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 2;
       while (attempts < maxAttempts) {
         try {
+          console.log(`[Page ${pageNumber}] Tentando modelo: ${model} (Tentativa ${attempts + 1}/${maxAttempts})`);
           pageResponse = await ai.models.generateContent({
             model: model,
             contents: [
@@ -252,12 +259,20 @@ RETORNE EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO no seguinte formato:
             console.warn(`[Page ${pageNumber}] ${model} não disponível (404). Pulando para próximo modelo.`);
             break;
           }
-          const isRateLimit =
+          const isDailyQuota =
+            err?.status === 429 ||
             err?.message?.includes('429') ||
-            err?.message?.includes('quota') ||
             err?.message?.includes('RESOURCE_EXHAUSTED') ||
-            err?.message?.includes('fetch failed');
-          const waitTime = isRateLimit ? 3000 * attempts : 1500;
+            err?.message?.includes('Quota exceeded') ||
+            err?.message?.includes('exceeded your current quota') ||
+            err?.message?.includes('limit: 20');
+
+          if (isDailyQuota) {
+            console.warn(`[Page ${pageNumber}] ${model} atingiu cota diária (429/RESOURCE_EXHAUSTED). Pulando imediatamente para próximo modelo.`);
+            break;
+          }
+
+          const waitTime = 2000 * attempts;
           console.warn(`[Page ${pageNumber}] ${model} tentativa ${attempts} falhou (${err.message}). Aguardando ${waitTime}ms...`);
           if (attempts < maxAttempts) {
             await new Promise((r) => setTimeout(r, waitTime));
@@ -397,7 +412,13 @@ ${customInstructions ? `Instruções adicionais do usuário: ${customInstruction
 
     // Structure the response format
     let extractionResponse;
-    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.6-flash'];
+    const modelsToTry = [
+      'gemini-3.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-3.1-flash-lite',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash'
+    ];
     let lastError: any = null;
 
     for (const model of modelsToTry) {
@@ -542,7 +563,13 @@ Retorne JSON no formato:
 }`;
 
     let response;
-    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.6-flash'];
+    const modelsToTry = [
+      'gemini-3.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-3.1-flash-lite',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash'
+    ];
     let lastError: any = null;
 
     for (const model of modelsToTry) {
