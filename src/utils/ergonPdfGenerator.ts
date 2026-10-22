@@ -1,6 +1,19 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, PDFPage, PDFPageDrawTextOptions } from 'pdf-lib';
 import { ErgonConsolidatedDocument, ErgonPageData } from '../types';
 import { downloadBlob } from './exportUtils';
+
+/**
+ * Helper to ensure page.drawText NEVER receives undefined or non-string values.
+ * Guarantees zero runtime crashes from pdf-lib parameter assertions.
+ */
+function safeDrawText(
+  page: PDFPage,
+  text: any,
+  options: PDFPageDrawTextOptions
+) {
+  const str = text !== undefined && text !== null ? String(text) : '';
+  page.drawText(str, options);
+}
 
 /**
  * Generates an exact, native vector PDF file of the official ERGON PMSP REPFICH2 report
@@ -24,15 +37,16 @@ export async function generateNativeErgonPdf(
   const marginX = 36; // 0.5 inch margins
   const contentWidth = pageWidth - marginX * 2;
 
-  const totalPages = documentData.totalPages || documentData.pages.length || 1;
+  const totalPages = documentData.totalPages || documentData.pages?.length || 1;
+  const pagesList = documentData.pages || [];
 
-  for (const pageData of documentData.pages) {
+  for (const pageData of pagesList) {
     const page = pdfDoc.addPage([pageWidth, pageHeight]);
     let currentY = pageHeight - 36; // Start near top
 
     // 1. TOP HEADER
     // Left: Instituição / Departamento
-    page.drawText('Instituição', {
+    safeDrawText(page, 'Instituição', {
       x: marginX,
       y: currentY,
       size: 7,
@@ -41,7 +55,7 @@ export async function generateNativeErgonPdf(
     });
     currentY -= 11;
 
-    page.drawText('Prefeitura do Município de São Paulo', {
+    safeDrawText(page, 'Prefeitura do Município de São Paulo', {
       x: marginX,
       y: currentY,
       size: 11,
@@ -50,7 +64,7 @@ export async function generateNativeErgonPdf(
     });
     currentY -= 9;
 
-    page.drawText('Departamento', {
+    safeDrawText(page, 'Departamento', {
       x: marginX,
       y: currentY,
       size: 7,
@@ -59,7 +73,7 @@ export async function generateNativeErgonPdf(
     });
     currentY -= 10;
 
-    page.drawText('Coordenadoria de Gestão de Pessoas', {
+    safeDrawText(page, 'Coordenadoria de Gestão de Pessoas', {
       x: marginX,
       y: currentY,
       size: 9,
@@ -97,24 +111,24 @@ export async function generateNativeErgonPdf(
     });
 
     // Box texts
-    page.drawText('Página', { x: boxX + 6, y: boxY + 31, size: 7.5, font: fontSansBold });
-    page.drawText(`${pageData.pageNumber}  /  ${totalPages}`, {
+    safeDrawText(page, 'Página', { x: boxX + 6, y: boxY + 31, size: 7.5, font: fontSansBold });
+    safeDrawText(page, `${pageData.pageNumber || 1}  /  ${totalPages}`, {
       x: boxX + boxW - 40,
       y: boxY + 31,
       size: 7.5,
       font: fontRegular,
     });
 
-    page.drawText('Emissão:', { x: boxX + 6, y: boxY + 17, size: 7, font: fontSans });
-    page.drawText(documentData.header.emissao || '19-10-2026 16:11:52', {
+    safeDrawText(page, 'Emissão:', { x: boxX + 6, y: boxY + 17, size: 7, font: fontSans });
+    safeDrawText(page, documentData.header?.emissao || '19-10-2026 16:11:52', {
       x: boxX + 50,
       y: boxY + 17,
       size: 7,
       font: fontRegular,
     });
 
-    page.drawText('Referência:', { x: boxX + 6, y: boxY + 3.5, size: 7.5, font: fontSansBold });
-    page.drawText(documentData.header.referencia || 'REPFICH2', {
+    safeDrawText(page, 'Referência:', { x: boxX + 6, y: boxY + 3.5, size: 7.5, font: fontSansBold });
+    safeDrawText(page, documentData.header?.referencia || 'REPFICH2', {
       x: boxX + boxW - 55,
       y: boxY + 3.5,
       size: 8,
@@ -138,7 +152,7 @@ export async function generateNativeErgonPdf(
       const v = documentData.vinculo || {};
 
       // Servidor lines (6.5pt com entrelinha de 8.5pt)
-      page.drawText(`Número ${s.numero || ''}   Nome ${s.nome || ''}`, {
+      safeDrawText(page, `Número ${s.numero || ''}   Nome ${s.nome || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -146,19 +160,21 @@ export async function generateNativeErgonPdf(
       });
       currentY -= 8.5;
 
-      page.drawText(
+      safeDrawText(
+        page,
         `Identificação RG ${s.rg || ''}   SSP ${s.ssp || ''}   CPF ${s.cpf || ''}   Nacionalidade ${s.nacionalidade || ''}`,
         { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
       currentY -= 8.5;
 
-      page.drawText(
+      safeDrawText(
+        page,
         `Estado Civil ${s.estadoCivil || ''}   Sexo ${s.sexo || ''}   Data de nascimento ${s.dataNascimento || ''}`,
         { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
       currentY -= 8.5;
 
-      page.drawText(`Pai ${s.pai || ''}`, {
+      safeDrawText(page, `Pai ${s.pai || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -166,7 +182,7 @@ export async function generateNativeErgonPdf(
       });
       currentY -= 8.5;
 
-      page.drawText(`Mãe ${s.mae || ''}`, {
+      safeDrawText(page, `Mãe ${s.mae || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -183,22 +199,24 @@ export async function generateNativeErgonPdf(
       currentY -= 8.5;
 
       // Vínculo title
-      page.drawText('Vínculo', { x: marginX, y: currentY, size: 7.5, font: fontBold });
+      safeDrawText(page, 'Vínculo', { x: marginX, y: currentY, size: 7.5, font: fontBold });
       currentY -= 8.5;
 
-      page.drawText(
+      safeDrawText(
+        page,
         `Número ${v.numero || ''}   Nomeação ${v.nomeacao || ''}   Posse ${v.posse || ''}   Exercício ${v.exercicio || ''}`,
         { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
       currentY -= 8.5;
 
-      page.drawText(
+      safeDrawText(
+        page,
         `Categoria ${v.categoria || ''}   Regime jurídico ${v.regimeJuridico || ''}   Vínculo Anterior ${v.vinculoAnterior || ''}   Vínculo Posterior ${v.vinculoPosterior || ''}`,
         { x: marginX, y: currentY, size: 6.5, font: fontRegular }
       );
       currentY -= 8.5;
 
-      page.drawText(`Tipo de Vínculo ${v.tipoVinculo || ''}   Matrícula1 ${v.matricula1 || ''}   Matrícula2 ${v.matricula2 || ''}`, {
+      safeDrawText(page, `Tipo de Vínculo ${v.tipoVinculo || ''}   Matrícula1 ${v.matricula1 || ''}   Matrícula2 ${v.matricula2 || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -206,7 +224,7 @@ export async function generateNativeErgonPdf(
       });
       currentY -= 8.5;
 
-      page.drawText(`Aposentadoria ${v.aposentadoria || ''}   Tipo Aposent. ${v.tipoAposent || ''}   Vacância ${v.vacancia || ''}   Forma Vacância ${v.formaVacancia || ''}`, {
+      safeDrawText(page, `Aposentadoria ${v.aposentadoria || ''}   Tipo Aposent. ${v.tipoAposent || ''}   Vacância ${v.vacancia || ''}   Forma Vacância ${v.formaVacancia || ''}`, {
         x: marginX,
         y: currentY,
         size: 6.5,
@@ -214,7 +232,7 @@ export async function generateNativeErgonPdf(
       });
       currentY -= 8.5;
 
-      page.drawText(`Motivo ${v.motivo || ''}`, { x: marginX, y: currentY, size: 6.5, font: fontRegular });
+      safeDrawText(page, `Motivo ${v.motivo || ''}`, { x: marginX, y: currentY, size: 6.5, font: fontRegular });
       currentY -= 7.5;
 
       // Divider line
@@ -228,10 +246,10 @@ export async function generateNativeErgonPdf(
 
     // 3. TABELA DE FREQUÊNCIA
     if (pageData.frequencias && pageData.frequencias.length > 0) {
-      page.drawText('Frequência', { x: marginX, y: currentY, size: 8, font: fontBold });
+      safeDrawText(page, 'Frequência', { x: marginX, y: currentY, size: 8, font: fontBold });
       currentY -= 9;
 
-      page.drawText('Período                    Quantidade  Código  Tipo        Descrição', {
+      safeDrawText(page, 'Período                    Quantidade  Código  Tipo        Descrição', {
         x: marginX,
         y: currentY,
         size: 7,
@@ -240,15 +258,16 @@ export async function generateNativeErgonPdf(
       currentY -= 9;
 
       for (const f of pageData.frequencias) {
+        if (!f) continue;
         if (currentY < 55) break; // Keep room for footer
 
-        const pStr = `${(f.periodoInicio || '').padEnd(10, ' ')}  ${(f.periodoFim || '').padEnd(10, ' ')}`;
-        const qStr = String(f.quantidade || '').padStart(5, ' ');
-        const cStr = String(f.codigo || '').padStart(5, ' ');
+        const pStr = `${String(f.periodoInicio || '').padEnd(10, ' ')}  ${String(f.periodoFim || '').padEnd(10, ' ')}`;
+        const qStr = String(f.quantidade ?? '').padStart(5, ' ');
+        const cStr = String(f.codigo ?? '').padStart(5, ' ');
         const tStr = String(f.tipo || '').padEnd(10, ' ');
         const dStr = String(f.descricao || '').slice(0, 52);
 
-        page.drawText(`${pStr}    ${qStr}   ${cStr}   ${tStr}  ${dStr}`, {
+        safeDrawText(page, `${pStr}    ${qStr}   ${cStr}   ${tStr}  ${dStr}`, {
           x: marginX,
           y: currentY,
           size: 7,
@@ -261,10 +280,10 @@ export async function generateNativeErgonPdf(
     // 4. TABELA DE LICENÇA AFASTAMENTO
     if (pageData.licencas && pageData.licencas.length > 0) {
       currentY -= 6;
-      page.drawText('Licença afastamento', { x: marginX, y: currentY, size: 8.5, font: fontBold });
+      safeDrawText(page, 'Licença afastamento', { x: marginX, y: currentY, size: 8.5, font: fontBold });
       currentY -= 10;
 
-      page.drawText('Período                    Dias  Código  Descrição                    Motivo', {
+      safeDrawText(page, 'Período                    Dias  Código  Descrição                    Motivo', {
         x: marginX,
         y: currentY,
         size: 7.5,
@@ -273,15 +292,16 @@ export async function generateNativeErgonPdf(
       currentY -= 10;
 
       for (const l of pageData.licencas) {
+        if (!l) continue;
         if (currentY < 60) break;
 
-        const pStr = `${l.periodoInicio.padEnd(10, ' ')}  ${l.periodoFim.padEnd(10, ' ')}`;
-        const dStr = String(l.dias || '').padStart(4, ' ');
-        const cStr = String(l.codigo || '').padStart(5, ' ');
+        const pStr = `${String(l.periodoInicio || '').padEnd(10, ' ')}  ${String(l.periodoFim || '').padEnd(10, ' ')}`;
+        const dStr = String(l.dias ?? '').padStart(4, ' ');
+        const cStr = String(l.codigo ?? '').padStart(5, ' ');
         const descStr = String(l.descricao || '').slice(0, 30).padEnd(30, ' ');
         const motStr = String(l.motivo || '').slice(0, 36);
 
-        page.drawText(`${pStr}   ${dStr}  ${cStr}   ${descStr}  ${motStr}`, {
+        safeDrawText(page, `${pStr}   ${dStr}  ${cStr}   ${descStr}  ${motStr}`, {
           x: marginX,
           y: currentY,
           size: 7.5,
@@ -293,35 +313,45 @@ export async function generateNativeErgonPdf(
 
     // 5. MAPA DE FREQUÊNCIA (Grade Milimétrica de 31 colunas x 11pt)
     if (pageData.mapaFrequencia && pageData.mapaFrequencia.length > 0) {
-      page.drawText('Mapa de Freqüência', { x: marginX, y: currentY, size: 8, font: fontBold });
+      safeDrawText(page, 'Mapa de Freqüência', { x: marginX, y: currentY, size: 8, font: fontBold });
       currentY -= 10;
 
       for (const anoData of pageData.mapaFrequencia) {
+        if (!anoData) continue;
         if (currentY < 75) break;
 
-        page.drawText(`Ano: ${anoData.ano}`, { x: marginX, y: currentY, size: 7.5, font: fontBold });
+        safeDrawText(page, `Ano: ${anoData.ano || ''}`, { x: marginX, y: currentY, size: 7.5, font: fontBold });
         currentY -= 8.5;
 
         // Cabeçalho dos 31 dias com exatamente 11pt por coluna
-        page.drawText('Mês', { x: marginX, y: currentY, size: 5.5, font: fontBold });
+        safeDrawText(page, 'Mês', { x: marginX, y: currentY, size: 5.5, font: fontBold });
         for (let d = 1; d <= 31; d++) {
           const colX = marginX + 28 + (d - 1) * 11;
-          page.drawText(String(d), { x: colX, y: currentY, size: 5, font: fontBold });
+          safeDrawText(page, String(d), { x: colX, y: currentY, size: 5, font: fontBold });
         }
         currentY -= 7.5;
 
         // Linhas de cada mês com alinhamento milimétrico por coluna
-        for (const m of anoData.meses) {
+        const mesesList = Array.isArray(anoData.meses) ? anoData.meses : [];
+        for (const m of mesesList) {
+          if (!m) continue;
           if (currentY < 55) break;
 
-          page.drawText(m.mes, { x: marginX, y: currentY, size: 5.5, font: fontBold });
+          const mesNome = String(m.mes || (m as any).nome || (m as any).month || '').trim();
+          safeDrawText(page, mesNome, { x: marginX, y: currentY, size: 5.5, font: fontBold });
           for (let d = 1; d <= 31; d++) {
             const colX = marginX + 28 + (d - 1) * 11;
-            let val = m.dias[d.toString()] || m.dias[d as any] || '...';
-            if (!val || val.trim() === '') val = '...';
+            let val = '...';
+            if (m.dias && typeof m.dias === 'object') {
+              const raw = m.dias[d.toString()] ?? m.dias[d as any];
+              if (raw !== undefined && raw !== null) {
+                val = String(raw).trim();
+              }
+            }
+            if (!val || val === '') val = '...';
 
             const isCode = val !== '...';
-            page.drawText(val.slice(0, 3), {
+            safeDrawText(page, val.slice(0, 3), {
               x: colX,
               y: currentY,
               size: 4.8,
@@ -349,7 +379,7 @@ export async function generateNativeErgonPdf(
       borderWidth: 0.8,
     });
 
-    page.drawText('Ergon', {
+    safeDrawText(page, 'Ergon', {
       x: marginX + 10,
       y: footY + 9,
       size: 9,
@@ -357,28 +387,28 @@ export async function generateNativeErgonPdf(
     });
 
     const centerText = 'Ergon - Recursos Humanos';
-    page.drawText(centerText, {
+    safeDrawText(page, centerText, {
       x: pageWidth / 2 - 50,
       y: footY + 13,
       size: 8,
       font: fontBold,
     });
 
-    page.drawText('Nome do banco de dados : ORA039', {
+    safeDrawText(page, 'Nome do banco de dados : ORA039', {
       x: pageWidth / 2 - 62,
       y: footY + 4,
       size: 6.5,
       font: fontRegular,
     });
 
-    page.drawText('Versão    6.4.', {
+    safeDrawText(page, 'Versão    6.4.', {
       x: pageWidth - marginX - 85,
       y: footY + 13,
       size: 8,
       font: fontBold,
     });
 
-    page.drawText('T63226/5,13/11062010', {
+    safeDrawText(page, 'T63226/5,13/11062010', {
       x: pageWidth - marginX - 90,
       y: footY + 4,
       size: 6.5,

@@ -760,8 +760,9 @@ export function exportErgonToExcel(
           Ano: anoData.ano,
           Mês: mesData.mes,
         };
+        const rawDias = mesData.dias && typeof mesData.dias === 'object' ? mesData.dias : {};
         for (let d = 1; d <= 31; d++) {
-          rowObj[`Dia_${d}`] = mesData.dias[d.toString()] || mesData.dias[d as any] || '';
+          rowObj[`Dia_${d}`] = rawDias[d.toString()] || rawDias[d as any] || '';
         }
         mapaRows.push(rowObj);
       });

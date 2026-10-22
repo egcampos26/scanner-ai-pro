@@ -13,6 +13,7 @@ import {
   Eye,
   Check,
   FolderDown,
+  RotateCcw,
 } from 'lucide-react';
 import {
   ErgonConsolidatedDocument,
@@ -101,6 +102,7 @@ export const BatchPdfProcessorModal: React.FC<BatchPdfProcessorModalProps> = ({
           prev.map((it, idx) => (idx === fIdx ? { ...it, status: 'reading' } : it))
         );
 
+        let consolidatedDoc: ErgonConsolidatedDocument | null = null;
         try {
           const file = initialItems[fIdx].file;
           const dataUrl = await readFileAsDataUrl(file);
@@ -251,7 +253,7 @@ export const BatchPdfProcessorModal: React.FC<BatchPdfProcessorModalProps> = ({
           if (isCancelledRef.current) break;
 
           // Step 3: Consolidate Document
-          const consolidatedDoc: ErgonConsolidatedDocument = {
+          consolidatedDoc = {
             totalPages: totalPagesCount,
             header: {
               instituicao: 'Prefeitura do Município de São Paulo',
@@ -327,6 +329,7 @@ export const BatchPdfProcessorModal: React.FC<BatchPdfProcessorModalProps> = ({
                     ...it,
                     status: 'error',
                     errorMessage: itemErr.message || 'Erro durante o processamento.',
+                    documentData: consolidatedDoc || it.documentData,
                   }
                 : it
             )
@@ -346,6 +349,234 @@ export const BatchPdfProcessorModal: React.FC<BatchPdfProcessorModalProps> = ({
       isCancelledRef.current = true;
     };
   }, [isOpen, files]);
+
+  const retryItem = async (itemId: string) => {
+    const itemIdx = items.findIndex((it) => it.id === itemId);
+    if (itemIdx === -1) return;
+
+    const targetItem = items[itemIdx];
+    setIsProcessing(true);
+    isCancelledRef.current = false;
+    setCurrentFileIdx(itemIdx);
+
+    setItems((prev) =>
+      prev.map((it, idx) =>
+        idx === itemIdx ? { ...it, status: 'reading', errorMessage: undefined } : it
+      )
+    );
+
+    let consolidatedDoc: ErgonConsolidatedDocument | null = null;
+    try {
+      const file = targetItem.file;
+      const dataUrl = await readFileAsDataUrl(file);
+
+      setItems((prev) =>
+        prev.map((it, idx) => (idx === itemIdx ? { ...it, status: 'splitting' } : it))
+      );
+
+      const splitRes = await fetch('/api/pdf/split', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdfBase64: dataUrl }),
+      });
+
+      if (!splitRes.ok) {
+        const errJson = await splitRes.json();
+        throw new Error(errJson.error || 'Falha ao dividir o PDF em páginas.');
+      }
+
+      const splitData = await splitRes.json();
+      const pages: { pageNumber: number; base64: string }[] = splitData.pages || [];
+      const totalPagesCount = splitData.pageCount || pages.length;
+
+      setItems((prev) =>
+        prev.map((it, idx) =>
+          idx === itemIdx
+            ? {
+                ...it,
+                status: 'extracting',
+                totalPages: totalPagesCount,
+                currentPage: 1,
+                completedPages: [],
+              }
+            : it
+        )
+      );
+
+      const extractedPages: ErgonPageData[] = [];
+      let servidorConsolidado: ErgonPersonalData = {};
+      let vinculoConsolidado: ErgonVinculoData = {};
+      const todasFrequencias: ErgonFrequenciaRow[] = [];
+      const todasLicencas: ErgonLicencaRow[] = [];
+      const todosMapas: ErgonMapaAno[] = [];
+
+      for (let pIdx = 0; pIdx < pages.length; pIdx++) {
+        if (isCancelledRef.current) break;
+        const p = pages[pIdx];
+
+        setItems((prev) =>
+          prev.map((it, idx) => (idx === itemIdx ? { ...it, currentPage: p.pageNumber } : it))
+        );
+
+        if (pIdx > 0) {
+          setStatusNotice(`Pausa segura anti-cota (3.5s) antes da Página ${p.pageNumber}...`);
+          await new Promise((r) => setTimeout(r, 3500));
+          setStatusNotice(null);
+        }
+
+        let pageSuccess = false;
+        let retryCount = 0;
+        let pageData: ErgonPageData | null = null;
+
+        while (!pageSuccess && retryCount < 6) {
+          try {
+            const pageRes = await fetch('/api/pdf/extract-page-data', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                pageBase64: p.base64,
+                pageNumber: p.pageNumber,
+                totalPages: totalPagesCount,
+              }),
+            });
+
+            if (!pageRes.ok) {
+              const errBody = await pageRes.json();
+              throw new Error(errBody.error || `Erro na página ${p.pageNumber}`);
+            }
+
+            const resJson = await pageRes.json();
+            pageData = resJson.data;
+            pageSuccess = true;
+            extractedPages.push(pageData!);
+
+            if (pageData?.servidor) {
+              for (const [k, v] of Object.entries(pageData.servidor)) {
+                if (v && typeof v === 'string' && v.trim() !== '') {
+                  (servidorConsolidado as any)[k] = v.trim();
+                }
+              }
+            }
+            if (pageData?.vinculo) {
+              for (const [k, v] of Object.entries(pageData.vinculo)) {
+                if (v && typeof v === 'string' && v.trim() !== '') {
+                  (vinculoConsolidado as any)[k] = v.trim();
+                }
+              }
+            }
+            if (pageData?.frequencias && pageData.frequencias.length > 0) {
+              todasFrequencias.push(...pageData.frequencias);
+            }
+            if (pageData?.licencas && pageData.licencas.length > 0) {
+              todasLicencas.push(...pageData.licencas);
+            }
+            if (pageData?.mapaFrequencia && pageData.mapaFrequencia.length > 0) {
+              todosMapas.push(...pageData.mapaFrequencia);
+            }
+
+            setItems((prev) =>
+              prev.map((it, idx) =>
+                idx === itemIdx
+                  ? {
+                      ...it,
+                      completedPages: [...it.completedPages, p.pageNumber],
+                    }
+                  : it
+              )
+            );
+            setStatusNotice(null);
+          } catch (err: any) {
+            retryCount++;
+            if (retryCount >= 6) {
+              throw new Error(
+                `Página ${p.pageNumber} falhou após 6 tentativas: ${err.message}`
+              );
+            }
+            const backoff = 4000 * retryCount;
+            setStatusNotice(
+              `Página ${p.pageNumber}: tentativa ${retryCount}/6 falhou (${err.message}). Aguardando ${backoff / 1000}s...`
+            );
+            await new Promise((r) => setTimeout(r, backoff));
+            setStatusNotice(null);
+          }
+        }
+      }
+
+      if (isCancelledRef.current) return;
+
+      consolidatedDoc = {
+        totalPages: totalPagesCount,
+        header: {
+          instituicao: 'Prefeitura do Município de São Paulo',
+          departamento: 'Coordenadoria de Gestão de Pessoas',
+          emissao: extractedPages[0]?.header?.emissao || new Date().toLocaleString('pt-BR'),
+          referencia: 'REPFICH2',
+        },
+        servidor: servidorConsolidado,
+        vinculo: vinculoConsolidado,
+        frequencias: todasFrequencias,
+        licencas: todasLicencas,
+        mapaFrequencia: todosMapas,
+        pages: extractedPages,
+        footer: {
+          sistema: 'Ergon',
+          modulo: 'Ergon - Recursos Humanos',
+          versao: '6.4',
+          banco: 'ORA039',
+        },
+      };
+
+      const rf = (consolidatedDoc.servidor?.numero || '').trim();
+      const vinculo = (consolidatedDoc.vinculo?.numero || '1').trim();
+      const nome = (
+        consolidatedDoc.servidor?.nome || file.name.replace(/\.pdf$/i, '')
+      ).trim();
+
+      const cleanNome = nome.replace(/[/\\?%*:|"<>]/g, '').trim();
+      const cleanRf = rf.replace(/[/\\?%*:|"<>]/g, '').trim();
+      const cleanVinculo = vinculo.replace(/[/\\?%*:|"<>]/g, '').trim();
+
+      const autoPdfFileName = cleanRf
+        ? `${cleanNome} - RF ${cleanRf} - Vinculo ${cleanVinculo} - REPFICH2.pdf`
+        : `${cleanNome} - Vinculo ${cleanVinculo} - REPFICH2.pdf`;
+
+      await generateNativeErgonPdf(consolidatedDoc, autoPdfFileName);
+
+      setItems((prev) =>
+        prev.map((it, idx) =>
+          idx === itemIdx
+            ? {
+                ...it,
+                status: 'done',
+                servidorNome: cleanNome,
+                servidorRf: cleanRf,
+                vinculoNumero: cleanVinculo,
+                downloadedFileName: autoPdfFileName,
+                documentData: consolidatedDoc!,
+                errorMessage: undefined,
+              }
+            : it
+        )
+      );
+    } catch (err: any) {
+      console.error(`Erro ao reprocessar:`, err);
+      setItems((prev) =>
+        prev.map((it, idx) =>
+          idx === itemIdx
+            ? {
+                ...it,
+                status: 'error',
+                errorMessage: err.message || 'Erro durante o reprocessamento.',
+                documentData: consolidatedDoc || it.documentData,
+              }
+            : it
+        )
+      );
+    } finally {
+      setIsProcessing(false);
+      setStatusNotice(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -501,18 +732,29 @@ export const BatchPdfProcessorModal: React.FC<BatchPdfProcessorModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Actions for Done items */}
-                  {isDone && item.documentData && (
+                  {/* Actions for Done items or items with documentData */}
+                  {item.documentData ? (
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        onClick={() =>
-                          generateNativeErgonPdf(
-                            item.documentData!,
-                            item.downloadedFileName
-                          )
-                        }
-                        title="Baixar PDF Novamente"
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-[11px] font-mono flex items-center gap-1 transition-colors"
+                        onClick={async () => {
+                          try {
+                            await generateNativeErgonPdf(
+                              item.documentData!,
+                              item.downloadedFileName
+                            );
+                            setItems((prev) =>
+                              prev.map((it) =>
+                                it.id === item.id
+                                  ? { ...it, status: 'done', errorMessage: undefined }
+                                  : it
+                              )
+                            );
+                          } catch (e: any) {
+                            alert('Erro ao gerar PDF: ' + e.message);
+                          }
+                        }}
+                        title="Baixar PDF"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00FF88] border border-[#00FF88]/20 text-[11px] font-mono flex items-center gap-1 transition-colors"
                       >
                         <Download className="w-3 h-3 text-[#00FF88]" />
                         PDF
@@ -539,7 +781,19 @@ export const BatchPdfProcessorModal: React.FC<BatchPdfProcessorModalProps> = ({
                         Ver
                       </button>
                     </div>
-                  )}
+                  ) : isError ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => retryItem(item.id)}
+                        disabled={isProcessing}
+                        title="Tentar novamente"
+                        className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] font-mono flex items-center gap-1 transition-colors disabled:opacity-50"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Reprocessar
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Micro page progress for current item */}
